@@ -1,5 +1,14 @@
 {
-  "name": "app",
+  "name": "shared-travel-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RBAC and ReBAC authorization demo using Oso Cloud",
+  "author": "Aydrian Howard <howdy@itsaydrian.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aydrian/ai-driven-authz-demo.git"
+  },
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
@@ -15,14 +24,15 @@
   "dependencies": {
     "better-auth": "^1.2.7",
     "dotenv": "^16.5.0",
-    "drizzle-orm": "^0.43.0",
-    "hono": "^4.7.7",
-    "pg": "^8.15.5"
+    "drizzle-orm": "^0.43.1",
+    "hono": "^4.7.8",
+    "pg": "^8.15.6"
   },
   "devDependencies": {
-    "@types/pg": "^8.11.14",
-    "drizzle-kit": "^0.31.0",
-    "tsx": "^4.19.3",
-    "wrangler": "^4.4.0"
+    "@biomejs/biome": "1.9.4",
+    "@types/pg": "^8.15.1",
+    "drizzle-kit": "^0.31.1",
+    "tsx": "^4.19.4",
+    "wrangler": "^4.14.4"
   }
 }
