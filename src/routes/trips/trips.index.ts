@@ -6,6 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { trips, tripRoles, roles } from "@/db/schema";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { withTripAuth } from "@/middlewares/with-trip-auth";
 
 const createTripSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -99,42 +100,11 @@ const router = createRouter()
       throw new HTTPException(500, { message: "Internal Server Error" });
     }
   })
-  .patch("/:tripId", zValidator("json", updateTripSchema), async (c) => {
-    const user = c.get("user");
+  .patch("/:tripId", withTripAuth(["Organizer"]), zValidator("json", updateTripSchema), async (c) => {
     const db = c.get("db");
     const tripId = c.req.param("tripId");
 
-    if (!user) {
-      throw new HTTPException(401, { message: "Unauthorized" });
-    }
-
     try {
-      // Check if the user is an Organizer for this trip
-      const roles = c.get("roles");
-      const organizerRole = roles.find((role) => role.name === "Organizer");
-
-      if (!organizerRole) {
-        throw new HTTPException(500, { message: "Organizer role not found" });
-      }
-
-      const userRole = await db
-        .select()
-        .from(tripRoles)
-        .where(
-          and(
-            eq(tripRoles.tripId, tripId),
-            eq(tripRoles.userId, user.id),
-            eq(tripRoles.roleId, organizerRole.id)
-          )
-        )
-        .limit(1);
-
-      if (userRole.length === 0) {
-        throw new HTTPException(403, {
-          message: "Forbidden: Only Organizers can update trips"
-        });
-      }
-
       const updateData = c.req.valid("json");
 
       // Prepare an object for the database update
@@ -142,12 +112,9 @@ const router = createRouter()
 
       // Convert date strings to Date objects if they exist
       if (updateData.name) updateValues.name = updateData.name;
-      if (updateData.destination)
-        updateValues.destination = updateData.destination;
-      if (updateData.startDate)
-        updateValues.startDate = new Date(updateData.startDate);
-      if (updateData.endDate)
-        updateValues.endDate = new Date(updateData.endDate);
+      if (updateData.destination) updateValues.destination = updateData.destination;
+      if (updateData.startDate) updateValues.startDate = new Date(updateData.startDate);
+      if (updateData.endDate) updateValues.endDate = new Date(updateData.endDate);
 
       // Update the trip
       const [updatedTrip] = await db
@@ -169,42 +136,11 @@ const router = createRouter()
       throw new HTTPException(500, { message: "Internal Server Error" });
     }
   })
-  .delete("/:tripId", async (c) => {
-    const user = c.get("user");
+  .delete("/:tripId", withTripAuth(["Organizer"]), async (c) => {
     const db = c.get("db");
     const tripId = c.req.param("tripId");
 
-    if (!user) {
-      throw new HTTPException(401, { message: "Unauthorized" });
-    }
-
     try {
-      // Check if the user is an Organizer for this trip
-      const roles = c.get("roles");
-      const organizerRole = roles.find((role) => role.name === "Organizer");
-
-      if (!organizerRole) {
-        throw new HTTPException(500, { message: "Organizer role not found" });
-      }
-
-      const userRole = await db
-        .select()
-        .from(tripRoles)
-        .where(
-          and(
-            eq(tripRoles.tripId, tripId),
-            eq(tripRoles.userId, user.id),
-            eq(tripRoles.roleId, organizerRole.id)
-          )
-        )
-        .limit(1);
-
-      if (userRole.length === 0) {
-        throw new HTTPException(403, {
-          message: "Forbidden: Only Organizers can delete trips"
-        });
-      }
-
       // Delete the trip
       const deletedTrip = await db
         .delete(trips)
@@ -221,14 +157,9 @@ const router = createRouter()
       throw new HTTPException(500, { message: "Internal Server Error" });
     }
   })
-  .get("/:tripId", async (c) => {
-    const user = c.get("user");
+  .get("/:tripId", withTripAuth(["Organizer", "Participant", "Viewer"]), async (c) => {
     const db = c.get("db");
     const tripId = c.req.param("tripId");
-
-    if (!user) {
-      throw new HTTPException(401, { message: "Unauthorized" });
-    }
 
     try {
       // Fetch trip details
@@ -245,13 +176,11 @@ const router = createRouter()
         })
         .from(trips)
         .innerJoin(tripRoles, eq(trips.id, tripRoles.tripId))
-        .where(and(eq(trips.id, tripId), eq(tripRoles.userId, user.id)))
+        .where(eq(trips.id, tripId))
         .limit(1);
 
       if (tripDetails.length === 0) {
-        throw new HTTPException(404, {
-          message: "Trip not found or user not authorized"
-        });
+        throw new HTTPException(404, { message: "Trip not found" });
       }
 
       // Get user role name from cached roles

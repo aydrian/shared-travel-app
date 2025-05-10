@@ -12,5 +12,6 @@ export interface AppBindings {
     session: Session | null;
     db: DrizzleClient;
     roles: Role[];
+    userTripRole: Role | undefined;
   };
 }
