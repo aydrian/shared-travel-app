@@ -8,7 +8,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { withTripAuth } from "@/middlewares/with-trip-auth";
 
-const tripParamSchema = z.object({
+export const tripParamSchema = z.object({
   tripId: z.string().uuid()
 });
 
