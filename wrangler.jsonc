@@ -3,9 +3,7 @@
   "name": "app",
   "main": "src/app.ts",
   "compatibility_date": "2025-04-24",
-  "compatibility_flags": [
-    "nodejs_compat"
-  ],
+  "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
   "dev": {
     "port": 3000

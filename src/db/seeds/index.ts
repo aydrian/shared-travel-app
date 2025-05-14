@@ -5,8 +5,8 @@ import env from "@/env-runtime";
 
 async function main() {
   await seedRoles(env);
-  await seedUsers(env);
-  await seedTrips(env);
+  // await seedUsers(env);
+  // await seedTrips(env);
   // Add other seed functions here as needed
 }
 
