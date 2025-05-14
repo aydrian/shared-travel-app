@@ -1,19 +1,20 @@
 import { createRouter } from "@/lib/create-app";
 import { HTTPException } from "hono/http-exception";
 import { eq, and } from "drizzle-orm";
-import { tripRoles, roles, user } from "@/db/schema";
+import { users } from "@/db/auth-schema.sql";
+import { tripRoles, roles } from "@/db/trips-schema.sql";
 import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { getGlobalRoles, type Role } from "@/lib/global-roles";
 
 const tripParamSchema = z.object({
-  tripId: z.string().uuid()
+  tripId: z.string()
 });
 
 const participantParamSchema = z.object({
-  tripId: z.string().uuid(),
-  userId: z.string().uuid()
+  tripId: z.string(),
+  userId: z.string()
 });
 
 // Dynamically create the role enum from global roles
@@ -25,8 +26,8 @@ const updateRoleSchema = z.object({
 });
 
 const addParticipantSchema = z.object({
-  user_id: z.string().uuid(),
-  role_id: z.string().uuid()
+  user_id: z.string(),
+  role_id: z.string()
 });
 
 const router = createRouter()
@@ -45,8 +46,8 @@ const router = createRouter()
         // Check if the user exists
         const [existingUser] = await db
           .select()
-          .from(user)
-          .where(eq(user.id, user_id))
+          .from(users)
+          .where(eq(users.id, user_id))
           .limit(1);
 
         if (!existingUser) {
@@ -97,13 +98,16 @@ const router = createRouter()
           statusCode = 201;
         }
 
-        return c.json({
-          message,
-          participant: {
-            user_id: participant.userId,
-            role: role.name
-          }
-        }, statusCode);
+        return c.json(
+          {
+            message,
+            participant: {
+              user_id: participant.userId,
+              role: role.name
+            }
+          },
+          statusCode
+        );
       } catch (error) {
         console.error("Error adding/updating participant:", error);
         if (error instanceof HTTPException) {
@@ -124,13 +128,13 @@ const router = createRouter()
       try {
         const participants = await db
           .select({
-            user_id: user.id,
-            name: user.name,
-            email: user.email,
+            user_id: users.id,
+            name: users.name,
+            email: users.email,
             role: roles.name
           })
           .from(tripRoles)
-          .innerJoin(user, eq(tripRoles.userId, user.id))
+          .innerJoin(users, eq(tripRoles.userId, users.id))
           .innerJoin(roles, eq(tripRoles.roleId, roles.id))
           .where(eq(tripRoles.tripId, tripId));
 
@@ -152,11 +156,9 @@ const router = createRouter()
       const { role } = c.req.valid("json");
 
       try {
-        // Get the role ID for the new role
-        const [newRole] = await db
-          .select()
-          .from(roles)
-          .where(eq(roles.name, role));
+        // Get the role from global roles
+        const globalRoles = getGlobalRoles();
+        const newRole = globalRoles.find((r: Role) => r.name === role);
 
         if (!newRole) {
           throw new HTTPException(400, { message: "Invalid role" });

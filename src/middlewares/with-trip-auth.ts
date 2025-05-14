@@ -1,7 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { eq, and } from "drizzle-orm";
-import { tripRoles, roles } from "@/db/schema";
+import { tripRoles, roles } from "@/db/trips-schema.sql";
 import type { AppBindings } from "@/lib/types";
 import type { Role } from "@/lib/global-roles";
 

@@ -1,11 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "app",
+  "name": "shared-travel-app",
   "main": "src/app.ts",
   "compatibility_date": "2025-04-24",
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
   "dev": {
     "port": 3000
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "shared-travel-app-d1",
+      "database_id": "4543f2c7-08d2-42f4-9982-35e1249e4d36",
+      "migrations_dir": "src/db/migrations"
+    }
+  ]
 }

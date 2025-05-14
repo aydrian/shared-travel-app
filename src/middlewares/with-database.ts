@@ -1,12 +1,12 @@
 import type { MiddlewareHandler } from "hono";
 import type { AppBindings } from "@/lib/types";
-import { createDb } from "@/db";
 import { getGlobalRoles, setGlobalRoles } from "@/lib/global-roles";
-import { roles } from "@/db/schema";
+import { roles } from "@/db/trips-schema.sql";
+import { getDB } from "@/db";
 
 const withDatabase: MiddlewareHandler<AppBindings> = async (c, next) => {
   // Create and set the database client
-  const db = createDb(c.env);
+  const db = getDB(c);
   c.set("db", db);
 
   // Check if global roles are empty

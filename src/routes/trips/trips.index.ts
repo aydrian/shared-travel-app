@@ -9,7 +9,7 @@ import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { DefaultTripService, type TripService } from "@/services/trip-service";
 
 export const tripParamSchema = z.object({
-  tripId: z.string().uuid()
+  tripId: z.string()
 });
 
 const createTripSchema = z.object({
@@ -27,7 +27,7 @@ const updateTripSchema = z.object({
 });
 
 const router = createRouter()
-  .get("/", async (c) => {
+  .get("/", withAuth, async (c) => {
     const user = c.get("user");
     console.log("User in Route:", user);
     const db = c.get("db");

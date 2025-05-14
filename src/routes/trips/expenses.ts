@@ -1,7 +1,7 @@
 import { createRouter } from "@/lib/create-app";
 import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { zValidator } from "@hono/zod-validator";
-import { expenses } from "@/db/schema";
+import { expenses } from "@/db/trips-schema.sql";
 import { eq, and } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
@@ -14,12 +14,15 @@ const createExpenseSchema = z.object({
 
 const updateExpenseSchema = z.object({
   description: z.string().min(1).optional(),
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional()
+  amount: z
+    .string()
+    .regex(/^\d+(\.\d{1,2})?$/)
+    .optional()
 });
 
 const expenseParamSchema = z.object({
-  tripId: z.string().uuid(),
-  expenseId: z.string().uuid()
+  tripId: z.string(),
+  expenseId: z.string()
 });
 
 const router = createRouter()
@@ -153,9 +156,7 @@ const router = createRouter()
         }
 
         // Delete the expense
-        await db
-          .delete(expenses)
-          .where(eq(expenses.id, expenseId));
+        await db.delete(expenses).where(eq(expenses.id, expenseId));
 
         return c.body(null, 204);
       } catch (error) {

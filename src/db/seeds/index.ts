@@ -1,12 +1,11 @@
 import { seedRoles } from "./roles";
 import { seedUsers } from "./users";
 import { seedTrips } from "./trips";
-import env from "@/env-runtime";
 
 async function main() {
-  await seedRoles(env);
-  // await seedUsers(env);
-  // await seedTrips(env);
+  await seedRoles();
+  // await seedUsers();
+  // await seedTrips();
   // Add other seed functions here as needed
 }
 

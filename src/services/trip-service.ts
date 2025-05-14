@@ -1,10 +1,10 @@
-import { trips, tripRoles, roles } from "@/db/schema";
+import type { getDB } from "@/db";
+import { trips, tripRoles, roles } from "@/db/trips-schema.sql";
 import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
-import type { createDb } from "@/db/index";
 
 // Get the DrizzleClient type from the return type of createDb
-type DrizzleClient = ReturnType<typeof createDb>;
+type DrizzleClient = ReturnType<typeof getDB>;
 
 // Define interfaces for the return types
 export interface Trip {
@@ -125,7 +125,7 @@ export class DefaultTripService implements TripService {
         .where(eq(tripRoles.userId, userId))) as UserTripQueryResult[];
 
       // Map the results to ensure they match the UserTrip interface
-      return results.map(result => this.mapToUserTrip(result));
+      return results.map((result) => this.mapToUserTrip(result));
     } catch (error) {
       console.error("Error fetching trips:", error);
       throw new HTTPException(500, { message: "Internal Server Error" });
@@ -195,7 +195,9 @@ export class DefaultTripService implements TripService {
         .returning()) as TripQueryResult[];
 
       if (!dbTrip) {
-        throw new HTTPException(404, { message: `Trip with ID ${tripId} not found` });
+        throw new HTTPException(404, {
+          message: `Trip with ID ${tripId} not found`
+        });
       }
 
       // Map the database result to our Trip interface
@@ -221,7 +223,9 @@ export class DefaultTripService implements TripService {
         .returning()) as TripQueryResult[];
 
       if (deletedTrips.length === 0) {
-        throw new HTTPException(404, { message: `Trip with ID ${tripId} not found` });
+        throw new HTTPException(404, {
+          message: `Trip with ID ${tripId} not found`
+        });
       }
 
       // Map the database result to our Trip interface
@@ -257,7 +261,9 @@ export class DefaultTripService implements TripService {
         .limit(1)) as TripWithRoleIdQueryResult[];
 
       if (tripDetails.length === 0) {
-        throw new HTTPException(404, { message: `Trip with ID ${tripId} not found` });
+        throw new HTTPException(404, {
+          message: `Trip with ID ${tripId} not found`
+        });
       }
 
       // Get user role name from cached roles
