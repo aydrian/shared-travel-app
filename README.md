@@ -22,96 +22,35 @@ Follow these steps to set up the project:
 3. Set up environment variables:
 
    ```shell
-   cp .env.example .env
+   cp .dev.vars.example .dev.vars
    ```
 
-   Edit the `.env` file and fill in the required values:
+   Edit the `.dev.vars` file and fill in the required values:
 
-   - `DATABASE_URL`: Your PostgreSQL database URL. If you're using the provided Docker setup, use:
-     ```
-     DATABASE_URL=postgres://postgres:password@localhost:5432/shared_travel_app
-     ```
    - `BETTER_AUTH_SECRET`: A secret key for Better Auth
    - `BETTER_AUTH_URL`: The URL for Better Auth (default is http://localhost:3000)
 
-4. Start the database using Docker:
-
-   ```shell
-   bun run docker:up
-   ```
-
-   This command starts a PostgreSQL database in a Docker container with the following configuration:
-
-   - Username: postgres
-   - Password: password
-   - Database: shared_travel_app
-   - Port: 5432
-
-5. Set up the database schema:
+4. Set up the database schema:
 
    ```shell
    bun run db:push
    ```
 
-6. Seed the database:
+5. Seed the database:
 
    ```shell
    bun run db:seed
    ```
 
-7. Start the development server:
+6. Start the development server:
 
    ```shell
    bun run dev
    ```
 
-## 🐳 Docker
-
-The project uses Docker to run the PostgreSQL database. The configuration is defined in the `docker-compose.yml` file.
-
-You can customize the database settings by modifying the following environment variables in the `docker-compose.yml` file:
-
-```yaml
-environment:
-  POSTGRES_USER: postgres
-  POSTGRES_PASSWORD: password
-  POSTGRES_DB: shared_travel_app
-```
-
-You can also change the port mapping if needed:
-
-```yaml
-ports:
-  - 5432:5432
-```
-
-After making changes to the `docker-compose.yml` file, make sure to update your `.env` file with the corresponding `DATABASE_URL`.
-
-To manage the Docker container:
-
-1. Start the database:
-
-   ```shell
-   bun run docker:up
-   ```
-
-2. To stop the database:
-
-   ```shell
-   bun run docker:down
-   ```
-
-3. To remove the database container and volumes:
-
-   ```shell
-   bun run docker:clean
-   ```
-
-Make sure the database is running before performing any database operations or starting the application.
-
 ## 🗄️ Database Management
 
-This project uses [Drizzle ORM](https://orm.drizzle.team/) for database operations and schema management. Here are some useful commands for managing your database:
+TThis project uses [Cloudflare D1](https://developers.cloudflare.com/d1/) as the database, which is a serverless SQL database. We use [Drizzle ORM](https://orm.drizzle.team/) for database operations and schema management. Here are some useful commands for managing your database:
 
 - Generate migration files:
 
@@ -132,6 +71,8 @@ This project uses [Drizzle ORM](https://orm.drizzle.team/) for database operatio
   ```
 
 Drizzle ORM provides type-safe database queries and schema definitions. For more information on how to use Drizzle ORM in your project, refer to the [Drizzle ORM documentation](https://orm.drizzle.team/docs/overview).
+
+For more information about Cloudflare D1, refer to the [Cloudflare D1 documentation](https://developers.cloudflare.com/d1/).
 
 ## 🔐 Authentication
 
