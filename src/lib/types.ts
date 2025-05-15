@@ -2,7 +2,7 @@ import type { User, Session } from "better-auth";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import type { Role } from "@/lib/global-roles";
 
-import type { DBSchema } from "@/db";
+import type { DBSchema, getDB } from "@/db";
 import type { getAuth } from "@/lib/auth";
 
 export interface AppBindings {
@@ -20,3 +20,6 @@ export interface AppBindings {
     userTripRole: Role | undefined;
   };
 }
+
+// Add this new type definition
+export type DrizzleClient = ReturnType<typeof getDB>;

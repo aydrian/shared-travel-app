@@ -1,10 +1,7 @@
-import type { getDB } from "@/db";
 import { trips, tripRoles, roles } from "@/db/trips-schema.sql";
 import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
-
-// Get the DrizzleClient type from the return type of createDb
-type DrizzleClient = ReturnType<typeof getDB>;
+import type { DrizzleClient } from "@/lib/types";
 
 // Define interfaces for the return types
 export interface Trip {

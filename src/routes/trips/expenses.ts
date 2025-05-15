@@ -1,11 +1,10 @@
 import { createRouter } from "@/lib/create-app";
 import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { zValidator } from "@hono/zod-validator";
-import { expenses } from "@/db/trips-schema.sql";
-import { eq, and } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { tripParamSchema } from "./trips.index";
+import { DefaultExpenseService, type ExpenseService } from "@/services/expense-service";
 
 const createExpenseSchema = z.object({
   description: z.string().min(1),
@@ -35,16 +34,8 @@ const router = createRouter()
       const { tripId } = c.req.valid("param");
 
       try {
-        const tripExpenses = await db
-          .select({
-            expense_id: expenses.id,
-            description: expenses.description,
-            amount: expenses.amount,
-            created_by: expenses.createdBy,
-            created_at: expenses.createdAt
-          })
-          .from(expenses)
-          .where(eq(expenses.tripId, tripId));
+        const expenseService: ExpenseService = new DefaultExpenseService(db);
+        const tripExpenses = await expenseService.getExpenses(tripId);
 
         return c.json({ expenses: tripExpenses }, 200);
       } catch (error) {
@@ -62,30 +53,14 @@ const router = createRouter()
       const db = c.get("db");
       const user = c.get("user");
       const { tripId } = c.req.valid("param");
-      const { description, amount } = c.req.valid("json");
+      const expenseData = c.req.valid("json");
 
       try {
-        const [newExpense] = await db
-          .insert(expenses)
-          .values({
-            tripId,
-            description,
-            amount,
-            // biome-ignore lint/style/noNonNullAssertion: Determined not null in withTripAuth middleware
-            createdBy: user!.id
-          })
-          .returning();
+        const expenseService: ExpenseService = new DefaultExpenseService(db);
+        // biome-ignore lint/style/noNonNullAssertion: Determined not null in withTripAuth middleware
+        const newExpense = await expenseService.createExpense(tripId, user!.id, expenseData);
 
-        return c.json(
-          {
-            expense_id: newExpense.id,
-            description: newExpense.description,
-            amount: newExpense.amount,
-            created_by: newExpense.createdBy,
-            created_at: newExpense.createdAt
-          },
-          201
-        );
+        return c.json(newExpense, 201);
       } catch (error) {
         console.error("Error adding new expense:", error);
         throw new HTTPException(500, { message: "Internal Server Error" });
@@ -103,27 +78,8 @@ const router = createRouter()
       const updateData = c.req.valid("json");
 
       try {
-        // Check if the expense exists and belongs to the trip
-        const existingExpense = await db
-          .select()
-          .from(expenses)
-          .where(and(eq(expenses.id, expenseId), eq(expenses.tripId, tripId)))
-          .limit(1);
-
-        if (existingExpense.length === 0) {
-          throw new HTTPException(404, { message: "Expense not found" });
-        }
-
-        // Update the expense
-        const [updatedExpense] = await db
-          .update(expenses)
-          .set(updateData)
-          .where(eq(expenses.id, expenseId))
-          .returning({
-            expense_id: expenses.id,
-            description: expenses.description,
-            amount: expenses.amount
-          });
+        const expenseService: ExpenseService = new DefaultExpenseService(db);
+        const updatedExpense = await expenseService.updateExpense(tripId, expenseId, updateData);
 
         return c.json(updatedExpense, 200);
       } catch (error) {
@@ -144,19 +100,8 @@ const router = createRouter()
       const { tripId, expenseId } = c.req.valid("param");
 
       try {
-        // Check if the expense exists and belongs to the trip
-        const existingExpense = await db
-          .select()
-          .from(expenses)
-          .where(and(eq(expenses.id, expenseId), eq(expenses.tripId, tripId)))
-          .limit(1);
-
-        if (existingExpense.length === 0) {
-          throw new HTTPException(404, { message: "Expense not found" });
-        }
-
-        // Delete the expense
-        await db.delete(expenses).where(eq(expenses.id, expenseId));
+        const expenseService: ExpenseService = new DefaultExpenseService(db);
+        await expenseService.deleteExpense(tripId, expenseId);
 
         return c.body(null, 204);
       } catch (error) {
