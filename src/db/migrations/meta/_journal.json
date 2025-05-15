@@ -8,6 +8,13 @@
       "when": 1747229375269,
       "tag": "0000_youthful_shiva",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1747251290658,
+      "tag": "0001_seed-roles",
+      "breakpoints": true
     }
   ]
 }

@@ -29,7 +29,6 @@ const updateTripSchema = z.object({
 const router = createRouter()
   .get("/", withAuth, async (c) => {
     const user = c.get("user");
-    console.log("User in Route:", user);
     const db = c.get("db");
 
     try {

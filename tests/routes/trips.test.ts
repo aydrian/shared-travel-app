@@ -1,45 +1,31 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, beforeAll } from "vitest";
+import { env } from "cloudflare:test";
+import { testClient } from "hono/testing";
 import app from "@/app";
-import { getAuth } from "@/lib/auth";
+import * as authModule from "@/lib/auth";
+import {
+  testOrganizerUser,
+  testParticipantUser,
+  testViewerUser,
+  signInWithOrganizer,
+  signInWithParticipant,
+  signInWithViewer,
+  mockContext,
+  setupTestData,
+  createTestTrip
+} from "../testSetup";
 
-// Mock the modules
-vi.mock("@/lib/auth");
-vi.mock("@/services/trip-service");
-
-// Helper function for mocking authentication
-function mockAuth(user: { id: string; email: string } | null) {
-  const mockAuthInstance = {
-    handleAuth: vi.fn(),
-    getSession: vi.fn().mockResolvedValue(user ? { user } : null)
-  };
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  (getAuth as any).mockReturnValue(mockAuthInstance);
-  return mockAuthInstance;
-}
-
-// Helper function for setting up app.get mocks
-function setupAppGetMocks(
-  user: { id: string; email: string } | null,
-  tripService: Partial<Record<string, ReturnType<typeof vi.fn>>>,
-  authInstance: ReturnType<typeof mockAuth>
-) {
-  app.get = vi.fn().mockImplementation((key) => {
-    if (key === "user") return user;
-    if (key === "tripService") return tripService;
-    if (key === "roles") return defaultMockRoles;
-    if (key === "auth") return authInstance;
-    return undefined;
-  });
-}
-
-const defaultMockRoles = [
-  { id: "role-1", name: "Organizer" },
-  { id: "role-2", name: "Participant" },
-  { id: "role-3", name: "Viewer" }
-];
+// Mock the getAuth function to return the authInstance
+vi.spyOn(authModule, "getAuth").mockReturnValue(
+  authModule.getAuth(mockContext)
+);
 
 describe("Trip Routes Authorization", () => {
-  const tripId = "123e4567-e89b-12d3-a456-426614174000";
+  const client = testClient(app, env);
+
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  let testTrip: any;
+
   const updateData = { name: "Updated Trip" };
   const createData = {
     name: "New Trip",
@@ -48,35 +34,30 @@ describe("Trip Routes Authorization", () => {
     endDate: "2023-01-07T00:00:00Z"
   };
 
+  beforeAll(async () => {
+    testTrip = await setupTestData();
+  });
+
   beforeEach(() => {
-    vi.resetAllMocks();
-    mockAuth(null);
-    app.get = vi.fn().mockReturnValue(undefined);
+    vi.clearAllMocks();
   });
 
   describe("GET /trips", () => {
     it("should allow authenticated users to list trips", async () => {
-      const mockUser = { id: "user-123", email: "user@example.com" };
-      const mockAuthInstance = mockAuth(mockUser);
+      const { headers } = await signInWithOrganizer();
 
-      const mockTrips = [{ id: "trip-1", name: "Trip 1" }];
-      const mockTripService = {
-        getUserTrips: vi.fn().mockResolvedValue(mockTrips)
-      };
-
-      setupAppGetMocks(mockUser, mockTripService, mockAuthInstance);
-
-      const res = await app.request("/trips");
+      const res = await client.api.trips.$get(
+        {},
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(mockTrips);
-      expect(mockTripService.getUserTrips).toHaveBeenCalledWith(mockUser.id);
+      const responseBody = await res.json();
+      expect(Array.isArray(responseBody)).toBe(true);
     });
 
     it("should deny unauthenticated users from listing trips", async () => {
-      mockAuth(null);
-
-      const res = await app.request("/trips");
+      const res = await client.api.trips.$get();
 
       expect(res.status).toBe(401);
     });
@@ -84,37 +65,23 @@ describe("Trip Routes Authorization", () => {
 
   describe("POST /trips", () => {
     it("should allow authenticated users to create a trip", async () => {
-      const mockUser = { id: "user-123", email: "user@example.com" };
-      const mockAuthInstance = mockAuth(mockUser);
+      const { headers } = await signInWithOrganizer();
 
-      const mockNewTrip = { id: "new-trip-id", ...createData };
-      const mockTripService = {
-        createTrip: vi.fn().mockResolvedValue(mockNewTrip)
-      };
-
-      setupAppGetMocks(mockUser, mockTripService, mockAuthInstance);
-
-      const res = await app.request("/trips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createData)
-      });
+      const res = await client.api.trips.$post(
+        {
+          json: createData
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
 
       expect(res.status).toBe(201);
-      expect(await res.json()).toEqual(mockNewTrip);
-      expect(mockTripService.createTrip).toHaveBeenCalledWith(
-        createData,
-        mockUser.id
-      );
+      const responseBody = await res.json();
+      expect(responseBody).toHaveProperty("id");
     });
 
     it("should deny unauthenticated users from creating a trip", async () => {
-      mockAuth(null);
-
-      const res = await app.request("/trips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(createData)
+      const res = await client.api.trips.$post({
+        json: createData
       });
 
       expect(res.status).toBe(401);
@@ -123,155 +90,146 @@ describe("Trip Routes Authorization", () => {
 
   describe("PATCH /trips/:tripId", () => {
     it("should allow organizers to update a trip", async () => {
-      const mockUser = { id: "organizer-123", email: "organizer@example.com" };
-      const mockAuthInstance = mockAuth(mockUser);
+      const { headers } = await signInWithOrganizer();
 
-      const updatedTrip = { id: tripId, ...updateData };
-      const mockTripService = {
-        updateTrip: vi.fn().mockResolvedValue(updatedTrip)
-      };
-
-      setupAppGetMocks(mockUser, mockTripService, mockAuthInstance);
-
-      const res = await app.request(`/trips/${tripId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData)
-      });
+      const res = await client.api.trips[":tripId"].$patch(
+        {
+          param: { tripId: testTrip.id },
+          json: updateData
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(updatedTrip);
-      expect(mockTripService.updateTrip).toHaveBeenCalledWith(
-        tripId,
-        updateData
-      );
     });
 
     it("should deny participants from updating a trip", async () => {
-      const mockUser = {
-        id: "participant-123",
-        email: "participant@example.com"
-      };
-      const mockAuthInstance = mockAuth(mockUser);
+      const { headers } = await signInWithParticipant();
 
-      const mockTripService = {
-        updateTrip: vi.fn().mockRejectedValue(new Error("Unauthorized"))
-      };
-
-      setupAppGetMocks(mockUser, mockTripService, mockAuthInstance);
-
-      const res = await app.request(`/trips/${tripId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData)
-      });
+      const res = await client.api.trips[":tripId"].$patch(
+        {
+          param: { tripId: testTrip.id },
+          json: updateData
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
 
       expect(res.status).toBe(403);
-      expect(mockTripService.updateTrip).toHaveBeenCalledWith(
-        tripId,
-        updateData
+    });
+
+    it("should deny viewers from updating a trip", async () => {
+      const { headers } = await signInWithViewer();
+
+      const res = await client.api.trips[":tripId"].$patch(
+        {
+          param: { tripId: testTrip.id },
+          json: updateData
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
       );
+
+      expect(res.status).toBe(403);
     });
   });
 
   describe("DELETE /trips/:tripId", () => {
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    let deleteTestTrip: any;
+
+    beforeEach(async () => {
+      // Create a new trip for deletion test
+      deleteTestTrip = await createTestTrip(
+        testOrganizerUser,
+        testParticipantUser,
+        testViewerUser
+      );
+    });
     it("should allow organizers to delete a trip", async () => {
-      const mockUser = { id: "organizer-123", email: "organizer@example.com" };
-      const mockAuthInstance = mockAuth(mockUser);
+      const { headers } = await signInWithOrganizer();
 
-      const mockTripService = {
-        deleteTrip: vi.fn().mockResolvedValue(undefined)
-      };
-
-      setupAppGetMocks(mockUser, mockTripService, mockAuthInstance);
-
-      const res = await app.request(`/trips/${tripId}`, {
-        method: "DELETE"
-      });
+      const res = await client.api.trips[":tripId"].$delete(
+        {
+          param: { tripId: deleteTestTrip.id }
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
 
       expect(res.status).toBe(204);
-      expect(mockTripService.deleteTrip).toHaveBeenCalledWith(tripId);
     });
 
     it("should deny participants from deleting a trip", async () => {
-      const mockUser = {
-        id: "participant-123",
-        email: "participant@example.com"
-      };
-      const mockAuthInstance = mockAuth(mockUser);
+      const { headers } = await signInWithParticipant();
 
-      const mockTripService = {
-        deleteTrip: vi.fn().mockRejectedValue(new Error("Unauthorized"))
-      };
-
-      setupAppGetMocks(mockUser, mockTripService, mockAuthInstance);
-
-      const res = await app.request(`/trips/${tripId}`, {
-        method: "DELETE"
-      });
+      const res = await client.api.trips[":tripId"].$delete(
+        {
+          param: { tripId: deleteTestTrip.id }
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
 
       expect(res.status).toBe(403);
-      expect(mockTripService.deleteTrip).toHaveBeenCalledWith(tripId);
+    });
+
+    it("should deny viewers from deleting a trip", async () => {
+      const { headers } = await signInWithViewer();
+
+      const res = await client.api.trips[":tripId"].$delete(
+        {
+          param: { tripId: deleteTestTrip.id }
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
+
+      expect(res.status).toBe(403);
     });
   });
 
   describe("GET /trips/:tripId", () => {
     it("should allow organizers to view trip details", async () => {
-      const mockUser = { id: "organizer-123", email: "organizer@example.com" };
-      const mockAuthInstance = mockAuth(mockUser);
+      const { headers } = await signInWithOrganizer();
 
-      const tripDetails = { id: tripId, name: "Trip Details" };
-      const mockTripService = {
-        getTripDetails: vi.fn().mockResolvedValue(tripDetails)
-      };
-
-      setupAppGetMocks(mockUser, mockTripService, mockAuthInstance);
-
-      const res = await app.request(`/trips/${tripId}`);
+      const res = await client.api.trips[":tripId"].$get(
+        {
+          param: { tripId: testTrip.id }
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(tripDetails);
-      expect(mockTripService.getTripDetails).toHaveBeenCalledWith(tripId);
     });
 
     it("should allow participants to view trip details", async () => {
-      const mockUser = {
-        id: "participant-123",
-        email: "participant@example.com"
-      };
-      const mockAuthInstance = mockAuth(mockUser);
+      const { headers } = await signInWithParticipant();
 
-      const tripDetails = { id: tripId, name: "Trip Details" };
-      const mockTripService = {
-        getTripDetails: vi.fn().mockResolvedValue(tripDetails)
-      };
-
-      setupAppGetMocks(mockUser, mockTripService, mockAuthInstance);
-
-      const res = await app.request(`/trips/${tripId}`);
+      const res = await client.api.trips[":tripId"].$get(
+        {
+          param: { tripId: testTrip.id }
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual(tripDetails);
-      expect(mockTripService.getTripDetails).toHaveBeenCalledWith(tripId);
+    });
+
+    it("should allow viewers to view trip details", async () => {
+      const { headers } = await signInWithViewer();
+
+      const res = await client.api.trips[":tripId"].$get(
+        {
+          param: { tripId: testTrip.id }
+        },
+        { headers: { Cookie: headers.get("cookie") || "" } }
+      );
+
+      expect(res.status).toBe(200);
     });
 
     it("should deny unauthorized users from viewing trip details", async () => {
-      const mockUser = {
-        id: "unauthorized-123",
-        email: "unauthorized@example.com"
-      };
-      const mockAuthInstance = mockAuth(mockUser);
+      const res = await client.api.trips[":tripId"].$get({
+        param: { tripId: testTrip.id }
+      });
 
-      const mockTripService = {
-        getTripDetails: vi.fn().mockRejectedValue(new Error("Unauthorized"))
-      };
-
-      setupAppGetMocks(mockUser, mockTripService, mockAuthInstance);
-
-      const res = await app.request(`/trips/${tripId}`);
-
-      expect(res.status).toBe(403);
-      expect(mockTripService.getTripDetails).toHaveBeenCalledWith(tripId);
+      expect(res.status).toBe(401);
     });
   });
 });

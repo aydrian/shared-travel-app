@@ -148,7 +148,8 @@ export class DefaultTripService implements TripService {
           destination,
           startDate: new Date(startDate),
           endDate: new Date(endDate),
-          ownerId: userId
+          ownerId: userId,
+          createdAt: new Date()
         })
         .returning()) as TripQueryResult[];
 

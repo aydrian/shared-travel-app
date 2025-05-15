@@ -14,20 +14,20 @@ const app = createApp()
 showRoutes(app);
 
 // Error handling
-app.onError((err, c) => {
-  console.error("Caught error:", err);
+// app.onError((err, c) => {
+//   console.error("Caught error:", err);
 
-  if (err instanceof HTTPException) {
-    // 👀 Look here
-    return err.getResponse();
-  }
+//   if (err instanceof HTTPException) {
+//     // 👀 Look here
+//     return err.getResponse();
+//   }
 
-  return c.json(
-    {
-      message: "An unexpected error occurred"
-    },
-    500
-  );
-});
+//   return c.json(
+//     {
+//       message: "An unexpected error occurred"
+//     },
+//     500
+//   );
+// });
 
 export default app;
