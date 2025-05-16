@@ -8,7 +8,7 @@ import { withAuth } from "@/middlewares/with-auth";
 import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { DefaultTripService, type TripService } from "@/services/trip-service";
 
-export const tripParamSchema = z.object({
+const tripParamSchema = z.object({
   tripId: z.string()
 });
 

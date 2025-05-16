@@ -9,34 +9,31 @@ import {
   DefaultParticipantService,
   type ParticipantService
 } from "@/services/participant-service";
+import { DefaultExpenseService } from "@/services/expense-service";
 
 // Use hardcoded role IDs from the migration
-const organizerRoleId = "org_role";
-const participantRoleId = "part_role";
-const viewerRoleId = "view_role";
-
-export const testOrganizerUser = {
-  name: "Olivia Organizer",
-  email: "olivia@example.com",
-  password: "password123",
-  role: "Organizer",
-  id: ""
+export const testRoles = {
+  organizer: "org_role",
+  participant: "part_role",
+  viewer: "view_role"
 };
 
-export const testParticipantUser = {
-  name: "Paul Participant",
-  email: "paul@example.com",
-  password: "password456",
-  role: "Participant",
-  id: ""
-};
-
-export const testViewerUser = {
-  name: "Vicky Viewer",
-  email: "vicky@example.com",
-  password: "password789",
-  role: "Viewer",
-  id: ""
+const testUserData = {
+  organizer: {
+    name: "Olivia Organizer",
+    email: "olivia@example.com",
+    password: "password123"
+  },
+  participant: {
+    name: "Paul Participant",
+    email: "paul@example.com",
+    password: "password456"
+  },
+  viewer: {
+    name: "Vicky Viewer",
+    email: "vicky@example.com",
+    password: "password789"
+  }
 };
 
 // Create a mock context to pass to getAuth
@@ -57,49 +54,74 @@ const { client: authClient, signInWithUser } = await getTestInstance(
 export { authClient, signInWithUser, mockContext };
 
 export async function setupTestData() {
-  const organizerSignup = await authClient.signUp.email({
-    name: testOrganizerUser.name,
-    email: testOrganizerUser.email,
-    password: testOrganizerUser.password
-  });
-  testOrganizerUser.id = organizerSignup.data?.user.id ?? "";
-
-  const participantSignup = await authClient.signUp.email({
-    name: testParticipantUser.name,
-    email: testParticipantUser.email,
-    password: testParticipantUser.password
-  });
-  testParticipantUser.id = participantSignup.data?.user.id ?? "";
-
-  const viewerSignup = await authClient.signUp.email({
-    name: testViewerUser.name,
-    email: testViewerUser.email,
-    password: testViewerUser.password
-  });
-  testViewerUser.id = viewerSignup.data?.user.id ?? "";
-
-  const db = getDB(mockContext);
-
-  // Create services
-  const tripService: TripService = new DefaultTripService(db);
-  const participantService: ParticipantService = new DefaultParticipantService(
-    db
-  );
+  const testUsers = {
+    organizer: await createTestUser(testUserData.organizer),
+    participant: await createTestUser(testUserData.participant),
+    viewer: await createTestUser(testUserData.viewer)
+  };
 
   // Create a new trip using TripService
   const testTrip = await createTestTrip(
-    testOrganizerUser,
-    testParticipantUser,
-    testViewerUser
+    testUsers.organizer,
+    testUsers.participant,
+    testUsers.viewer
   );
 
-  return testTrip;
+  return { testTrip, testUsers };
+}
+
+type TestUser = {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+};
+
+export async function createTestUser({
+  name,
+  email,
+  password
+}: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<TestUser> {
+  try {
+    // Attempt to sign in silently
+    const signInRes = await authClient.signIn.email({ email, password });
+
+    // If sign-in is successful, the user already exists
+    if (signInRes.data?.user) {
+      const { id, name, email } = signInRes.data.user;
+      return { id, name, email, password };
+    }
+  } catch (error) {
+    // Ignore the error, as it likely means the user doesn't exist
+  }
+
+  // If sign-in fails or throws an error, create a new user
+  const signUpRes = await authClient.signUp.email({
+    name,
+    email,
+    password
+  });
+
+  if (!signUpRes.data?.user) {
+    throw new Error(`Failed to create user: ${email}`);
+  }
+
+  const { id, name: createdName, email: createdEmail } = signUpRes.data.user;
+  return { id, name: createdName, email: createdEmail, password };
+}
+
+export async function signInWithTestUser(user: TestUser) {
+  return signInWithUser(user.email, user.password);
 }
 
 export async function createTestTrip(
-  organizer: { id: string },
-  participant: { id: string },
-  viewer: { id: string }
+  organizer: { id: string } & Record<string, unknown>,
+  participant: { id: string } & Record<string, unknown>,
+  viewer: { id: string } & Record<string, unknown>
 ) {
   const db = getDB(mockContext);
 
@@ -118,36 +140,30 @@ export async function createTestTrip(
       endDate: "2023-07-07T00:00:00Z"
     },
     organizer.id,
-    organizerRoleId
+    testRoles.organizer
   );
 
   // Add participants using ParticipantService
   await participantService.addParticipant(
     testTrip.id,
     participant.id,
-    participantRoleId
+    testRoles.participant
   );
   await participantService.addParticipant(
     testTrip.id,
-    participant.id,
-    viewerRoleId
+    viewer.id,
+    testRoles.viewer
   );
-  await participantService.addParticipant(testTrip.id, viewer.id, viewerRoleId);
 
   return testTrip;
 }
 
-export async function signInWithOrganizer() {
-  return signInWithUser(testOrganizerUser.email, testOrganizerUser.password);
-}
-
-export async function signInWithParticipant() {
-  return signInWithUser(
-    testParticipantUser.email,
-    testParticipantUser.password
-  );
-}
-
-export async function signInWithViewer() {
-  return signInWithUser(testViewerUser.email, testViewerUser.password);
+export async function createTestExpense(tripId: string, participantId: string) {
+  const db = getDB(mockContext);
+  const expenseService = new DefaultExpenseService(db);
+  const newExpense = await expenseService.createExpense(tripId, participantId, {
+    description: "Test Expense",
+    amount: "100.00"
+  });
+  return newExpense;
 }

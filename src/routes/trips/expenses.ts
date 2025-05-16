@@ -3,8 +3,10 @@ import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
-import { tripParamSchema } from "./trips.index";
-import { DefaultExpenseService, type ExpenseService } from "@/services/expense-service";
+import {
+  DefaultExpenseService,
+  type ExpenseService
+} from "@/services/expense-service";
 
 const createExpenseSchema = z.object({
   description: z.string().min(1),
@@ -17,6 +19,10 @@ const updateExpenseSchema = z.object({
     .string()
     .regex(/^\d+(\.\d{1,2})?$/)
     .optional()
+});
+
+const tripParamSchema = z.object({
+  tripId: z.string()
 });
 
 const expenseParamSchema = z.object({
@@ -57,8 +63,13 @@ const router = createRouter()
 
       try {
         const expenseService: ExpenseService = new DefaultExpenseService(db);
-        // biome-ignore lint/style/noNonNullAssertion: Determined not null in withTripAuth middleware
-        const newExpense = await expenseService.createExpense(tripId, user!.id, expenseData);
+
+        const newExpense = await expenseService.createExpense(
+          tripId,
+          // biome-ignore lint/style/noNonNullAssertion: Determined not null in withTripAuth middleware
+          user!.id,
+          expenseData
+        );
 
         return c.json(newExpense, 201);
       } catch (error) {
@@ -79,7 +90,11 @@ const router = createRouter()
 
       try {
         const expenseService: ExpenseService = new DefaultExpenseService(db);
-        const updatedExpense = await expenseService.updateExpense(tripId, expenseId, updateData);
+        const updatedExpense = await expenseService.updateExpense(
+          tripId,
+          expenseId,
+          updateData
+        );
 
         return c.json(updatedExpense, 200);
       } catch (error) {

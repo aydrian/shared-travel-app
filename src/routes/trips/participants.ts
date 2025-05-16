@@ -4,7 +4,10 @@ import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { getGlobalRoles, type Role } from "@/lib/global-roles";
-import { DefaultParticipantService, type ParticipantService } from "@/services/participant-service";
+import {
+  DefaultParticipantService,
+  type ParticipantService
+} from "@/services/participant-service";
 
 const tripParamSchema = z.object({
   tripId: z.string()
@@ -15,12 +18,8 @@ const participantParamSchema = z.object({
   userId: z.string()
 });
 
-// Dynamically create the role enum from global roles
-const roleNames = getGlobalRoles().map((role) => role.name) as Role["name"][];
-const roleEnum = z.enum(roleNames as [Role["name"], ...Role["name"][]]);
-
 const updateRoleSchema = z.object({
-  role: roleEnum
+  role_id: z.string()
 });
 
 const addParticipantSchema = z.object({
@@ -40,8 +39,13 @@ const router = createRouter()
       const { user_id, role_id } = c.req.valid("json");
 
       try {
-        const participantService: ParticipantService = new DefaultParticipantService(db);
-        const participant = await participantService.addParticipant(tripId, user_id, role_id);
+        const participantService: ParticipantService =
+          new DefaultParticipantService(db);
+        const participant = await participantService.addParticipant(
+          tripId,
+          user_id,
+          role_id
+        );
 
         return c.json(
           {
@@ -68,7 +72,8 @@ const router = createRouter()
       const { tripId } = c.req.valid("param");
 
       try {
-        const participantService: ParticipantService = new DefaultParticipantService(db);
+        const participantService: ParticipantService =
+          new DefaultParticipantService(db);
         const participants = await participantService.getParticipants(tripId);
 
         return c.json({ participants }, 200);
@@ -86,18 +91,24 @@ const router = createRouter()
     async (c) => {
       const db = c.get("db");
       const { tripId, userId } = c.req.valid("param");
-      const { role } = c.req.valid("json");
+      const { role_id } = c.req.valid("json");
 
       try {
         const globalRoles = getGlobalRoles();
-        const newRole = globalRoles.find((r: Role) => r.name === role);
+        const newRole = globalRoles.find((r: Role) => r.id === role_id);
 
         if (!newRole) {
           throw new HTTPException(400, { message: "Invalid role" });
         }
 
-        const participantService: ParticipantService = new DefaultParticipantService(db);
-        const updatedParticipant = await participantService.updateParticipantRole(tripId, userId, newRole.id);
+        const participantService: ParticipantService =
+          new DefaultParticipantService(db);
+        const updatedParticipant =
+          await participantService.updateParticipantRole(
+            tripId,
+            userId,
+            newRole.id
+          );
 
         return c.json(
           {
@@ -124,7 +135,8 @@ const router = createRouter()
       const { tripId, userId } = c.req.valid("param");
 
       try {
-        const participantService: ParticipantService = new DefaultParticipantService(db);
+        const participantService: ParticipantService =
+          new DefaultParticipantService(db);
         await participantService.removeParticipant(tripId, userId);
 
         // Return 204 No Content status code

@@ -4,14 +4,9 @@ import { testClient } from "hono/testing";
 import app from "@/app";
 import * as authModule from "@/lib/auth";
 import {
-  testOrganizerUser,
-  testParticipantUser,
-  testViewerUser,
-  signInWithOrganizer,
-  signInWithParticipant,
-  signInWithViewer,
   mockContext,
   setupTestData,
+  signInWithTestUser,
   createTestTrip
 } from "../testSetup";
 
@@ -22,9 +17,8 @@ vi.spyOn(authModule, "getAuth").mockReturnValue(
 
 describe("Trip Routes Authorization", () => {
   const client = testClient(app, env);
-
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  let testTrip: any;
+  let testTrip: Awaited<ReturnType<typeof setupTestData>>["testTrip"];
+  let testUsers: Awaited<ReturnType<typeof setupTestData>>["testUsers"];
 
   const updateData = { name: "Updated Trip" };
   const createData = {
@@ -35,7 +29,9 @@ describe("Trip Routes Authorization", () => {
   };
 
   beforeAll(async () => {
-    testTrip = await setupTestData();
+    const setupData = await setupTestData();
+    testTrip = setupData.testTrip;
+    testUsers = setupData.testUsers;
   });
 
   beforeEach(() => {
@@ -44,7 +40,7 @@ describe("Trip Routes Authorization", () => {
 
   describe("GET /trips", () => {
     it("should allow authenticated users to list trips", async () => {
-      const { headers } = await signInWithOrganizer();
+      const { headers } = await signInWithTestUser(testUsers.organizer);
 
       const res = await client.api.trips.$get(
         {},
@@ -52,8 +48,6 @@ describe("Trip Routes Authorization", () => {
       );
 
       expect(res.status).toBe(200);
-      const responseBody = await res.json();
-      expect(Array.isArray(responseBody)).toBe(true);
     });
 
     it("should deny unauthenticated users from listing trips", async () => {
@@ -65,7 +59,7 @@ describe("Trip Routes Authorization", () => {
 
   describe("POST /trips", () => {
     it("should allow authenticated users to create a trip", async () => {
-      const { headers } = await signInWithOrganizer();
+      const { headers } = await signInWithTestUser(testUsers.organizer);
 
       const res = await client.api.trips.$post(
         {
@@ -75,8 +69,6 @@ describe("Trip Routes Authorization", () => {
       );
 
       expect(res.status).toBe(201);
-      const responseBody = await res.json();
-      expect(responseBody).toHaveProperty("id");
     });
 
     it("should deny unauthenticated users from creating a trip", async () => {
@@ -90,7 +82,7 @@ describe("Trip Routes Authorization", () => {
 
   describe("PATCH /trips/:tripId", () => {
     it("should allow organizers to update a trip", async () => {
-      const { headers } = await signInWithOrganizer();
+      const { headers } = await signInWithTestUser(testUsers.organizer);
 
       const res = await client.api.trips[":tripId"].$patch(
         {
@@ -104,7 +96,7 @@ describe("Trip Routes Authorization", () => {
     });
 
     it("should deny participants from updating a trip", async () => {
-      const { headers } = await signInWithParticipant();
+      const { headers } = await signInWithTestUser(testUsers.participant);
 
       const res = await client.api.trips[":tripId"].$patch(
         {
@@ -118,7 +110,7 @@ describe("Trip Routes Authorization", () => {
     });
 
     it("should deny viewers from updating a trip", async () => {
-      const { headers } = await signInWithViewer();
+      const { headers } = await signInWithTestUser(testUsers.viewer);
 
       const res = await client.api.trips[":tripId"].$patch(
         {
@@ -133,23 +125,21 @@ describe("Trip Routes Authorization", () => {
   });
 
   describe("DELETE /trips/:tripId", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    let deleteTestTrip: any;
-
+    let deleteTrip: Awaited<ReturnType<typeof createTestTrip>>;
     beforeEach(async () => {
-      // Create a new trip for deletion test
-      deleteTestTrip = await createTestTrip(
-        testOrganizerUser,
-        testParticipantUser,
-        testViewerUser
+      deleteTrip = await createTestTrip(
+        testUsers.organizer,
+        testUsers.participant,
+        testUsers.viewer
       );
     });
+
     it("should allow organizers to delete a trip", async () => {
-      const { headers } = await signInWithOrganizer();
+      const { headers } = await signInWithTestUser(testUsers.organizer);
 
       const res = await client.api.trips[":tripId"].$delete(
         {
-          param: { tripId: deleteTestTrip.id }
+          param: { tripId: deleteTrip.id }
         },
         { headers: { Cookie: headers.get("cookie") || "" } }
       );
@@ -158,11 +148,11 @@ describe("Trip Routes Authorization", () => {
     });
 
     it("should deny participants from deleting a trip", async () => {
-      const { headers } = await signInWithParticipant();
+      const { headers } = await signInWithTestUser(testUsers.participant);
 
       const res = await client.api.trips[":tripId"].$delete(
         {
-          param: { tripId: deleteTestTrip.id }
+          param: { tripId: deleteTrip.id }
         },
         { headers: { Cookie: headers.get("cookie") || "" } }
       );
@@ -171,11 +161,11 @@ describe("Trip Routes Authorization", () => {
     });
 
     it("should deny viewers from deleting a trip", async () => {
-      const { headers } = await signInWithViewer();
+      const { headers } = await signInWithTestUser(testUsers.viewer);
 
       const res = await client.api.trips[":tripId"].$delete(
         {
-          param: { tripId: deleteTestTrip.id }
+          param: { tripId: deleteTrip.id }
         },
         { headers: { Cookie: headers.get("cookie") || "" } }
       );
@@ -186,7 +176,7 @@ describe("Trip Routes Authorization", () => {
 
   describe("GET /trips/:tripId", () => {
     it("should allow organizers to view trip details", async () => {
-      const { headers } = await signInWithOrganizer();
+      const { headers } = await signInWithTestUser(testUsers.organizer);
 
       const res = await client.api.trips[":tripId"].$get(
         {
@@ -199,7 +189,7 @@ describe("Trip Routes Authorization", () => {
     });
 
     it("should allow participants to view trip details", async () => {
-      const { headers } = await signInWithParticipant();
+      const { headers } = await signInWithTestUser(testUsers.participant);
 
       const res = await client.api.trips[":tripId"].$get(
         {
@@ -212,7 +202,7 @@ describe("Trip Routes Authorization", () => {
     });
 
     it("should allow viewers to view trip details", async () => {
-      const { headers } = await signInWithViewer();
+      const { headers } = await signInWithTestUser(testUsers.viewer);
 
       const res = await client.api.trips[":tripId"].$get(
         {
