@@ -109,6 +109,40 @@ For more details on using Better Auth, refer to the [Better Auth documentation](
 | `/api/trips/:tripId/expenses/:expenseId`  | PATCH  | Update an expense            | Organizer, Participant         |
 | `/api/trips/:tripId/expenses/:expenseId`  | DELETE | Delete an expense            | Organizer, Participant         |
 
+## 🧪 Testing
+
+This project uses [Vitest](https://vitest.dev/) as the testing framework to ensure the reliability and correctness of our code, particularly for verifying our Role-Based Access Control (RBAC) authentication.
+
+### Running Tests
+
+To run the test suite, use the following command:
+
+```shell
+bun run test
+```
+
+### Test Structure
+
+Our tests are located in the `tests` directory and are organized to mirror the structure of our `src` directory. Key test files include:
+
+- `tests/routes/trips.test.ts`: Tests for trip-related routes and permissions
+- `tests/routes/participants.test.ts`: Tests for participant-related routes and permissions
+- `tests/routes/expenses.test.ts`: Tests for expense-related routes and permissions
+
+### RBAC Authentication Tests
+
+We have comprehensive tests to verify our RBAC authentication system. These tests ensure that:
+
+1. Users can only access routes they have permission for
+2. Different roles (Organizer, Participant, Viewer) have the correct access levels
+3. Unauthorized access attempts are properly rejected
+
+For example, in our trip routes tests, we verify that:
+
+- Only authenticated users can list and create trips
+- Only organizers can update or delete trips
+- Organizers, participants, and viewers can view trip details
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
