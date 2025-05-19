@@ -19,6 +19,11 @@
     "db:migrate-remote": "wrangler d1 migrations apply shared-travel-app-d1 --remote",
     "db:studio": "drizzle-kit studio",
     "db:seed": "bun run src/db/seeds/index.ts",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:clean": "docker-compose down -v",
+    "oso:validate": "oso-cloud validate main.polar",
+    "oso:test": "oso-cloud test main.polar",
     "test": "vitest"
   },
   "dependencies": {
@@ -28,6 +33,7 @@
     "better-auth": "^1.2.8",
     "drizzle-orm": "^0.43.1",
     "hono": "^4.7.10",
+    "oso-cloud": "^2.4.7",
     "zod": "^3.24.4"
   },
   "devDependencies": {

@@ -10,6 +10,8 @@ export interface AppBindings {
     DB: D1Database;
     BETTER_AUTH_SECRET: string;
     BETTER_AUTH_URL: string;
+    OSO_AUTH: string;
+    OSO_URL: string;
   };
   Variables: {
     auth: ReturnType<typeof getAuth>;

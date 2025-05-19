@@ -1,0 +1,11 @@
+services:
+  oso:
+    container_name: oso_service
+    image: public.ecr.aws/osohq/dev-server:latest
+    command: --watch-for-changes /main.polar
+    ports:
+      - 8080:8080
+    volumes:
+      - type: bind
+        source: ./main.polar
+        target: /main.polar
