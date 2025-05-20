@@ -2,6 +2,8 @@ import { expenses } from "@/db/trips-schema.sql";
 import { eq, and } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { DrizzleClient } from "@/lib/types";
+import type { Oso } from "oso-cloud";
+import type { PolarTypes } from "@/lib/polarTypes";
 
 export interface Expense {
   expense_id: string;
@@ -37,7 +39,7 @@ export interface ExpenseService {
 }
 
 export class DefaultExpenseService implements ExpenseService {
-  constructor(private db: DrizzleClient) {}
+  constructor(private db: DrizzleClient, private oso: Oso<PolarTypes>) {}
 
   async getExpenses(tripId: string): Promise<Expense[]> {
     try {
@@ -74,6 +76,13 @@ export class DefaultExpenseService implements ExpenseService {
           createdBy: userId
         })
         .returning();
+
+      await this.oso.insert([
+        "has_relation",
+        { type: "Expense", id: newExpense.id },
+        "trip",
+        { type: "Trip", id: tripId }
+      ]);
 
       return {
         expense_id: newExpense.id,
@@ -143,6 +152,13 @@ export class DefaultExpenseService implements ExpenseService {
 
       // Delete the expense
       await this.db.delete(expenses).where(eq(expenses.id, expenseId));
+
+      await this.oso.delete([
+        "has_relation",
+        { type: "Expense", id: expenseId },
+        "trip",
+        { type: "Trip", id: tripId }
+      ]);
     } catch (error) {
       console.error("Error deleting expense:", error);
       if (error instanceof HTTPException) {

@@ -22,9 +22,11 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:clean": "docker-compose down -v",
+    "oso:typegen": "oso-cloud generate-types typescript main.polar > src/lib/polarTypes.d.ts --include facts,queries,resources",
     "oso:validate": "oso-cloud validate main.polar",
     "oso:test": "oso-cloud test main.polar",
-    "test": "vitest"
+    "test": "vitest",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@better-auth-kit/tests": "^0.2.0",
@@ -40,7 +42,7 @@
     "@biomejs/biome": "1.9.4",
     "@cloudflare/vitest-pool-workers": "^0.8.30",
     "drizzle-kit": "^0.31.1",
-    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
     "vitest": "^3.1.3",
     "wrangler": "^4.15.2"
   }

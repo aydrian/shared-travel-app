@@ -3,6 +3,8 @@ import { tripRoles, roles } from "@/db/trips-schema.sql";
 import { eq, and } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { DrizzleClient } from "@/lib/types";
+import type { Oso } from "oso-cloud";
+import type { PolarTypes } from "@/lib/polarTypes";
 
 export interface Participant {
   user_id: string;
@@ -27,7 +29,7 @@ export interface ParticipantService {
 }
 
 export class DefaultParticipantService implements ParticipantService {
-  constructor(private db: DrizzleClient) {}
+  constructor(private db: DrizzleClient, private oso: Oso<PolarTypes>) {}
 
   async getParticipants(tripId: string): Promise<Participant[]> {
     try {
@@ -105,6 +107,13 @@ export class DefaultParticipantService implements ParticipantService {
         .where(and(eq(tripRoles.tripId, tripId), eq(tripRoles.userId, userId)))
         .limit(1);
 
+      await this.oso.insert([
+        "has_role",
+        { type: "Trip", id: tripId },
+        { type: "String", id: roleId },
+        { type: "User", id: userId }
+      ]);
+
       return participant;
     } catch (error) {
       console.error("Error adding/updating participant:", error);
@@ -146,6 +155,19 @@ export class DefaultParticipantService implements ParticipantService {
         .where(and(eq(tripRoles.tripId, tripId), eq(tripRoles.userId, userId)))
         .limit(1);
 
+      await this.oso.delete([
+        "has_role",
+        { type: "Trip", id: tripId },
+        null,
+        { type: "User", id: userId }
+      ]);
+      await this.oso.insert([
+        "has_role",
+        { type: "Trip", id: tripId },
+        { type: "String", id: roleId },
+        { type: "User", id: userId }
+      ]);
+
       return participant;
     } catch (error) {
       console.error("Error updating participant role:", error);
@@ -167,6 +189,13 @@ export class DefaultParticipantService implements ParticipantService {
       if (!deletedParticipant) {
         throw new HTTPException(404, { message: "Participant not found" });
       }
+
+      await this.oso.delete([
+        "has_role",
+        { type: "Trip", id: tripId },
+        null,
+        { type: "User", id: userId }
+      ]);
     } catch (error) {
       console.error("Error removing participant:", error);
       if (error instanceof HTTPException) {

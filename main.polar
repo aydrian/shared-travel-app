@@ -3,9 +3,10 @@ actor User {}
 # Everyone will be added to "deafult" organization
 resource Organization {
   roles = ["member"];
-  permissions = ["trip.create"];
+  permissions = ["trip.create", "trip.list"];
 
   "trip.create" if "member";
+  "trip.list" if "member";
 }
 
 resource Trip {
@@ -46,13 +47,15 @@ resource Expense {
   "manage" if "editor";
 }
 
-test "org members can create trips" {
+test "org members can create and list trips" {
   setup {
     has_role(User{"alice"}, "member", Organization{"default"});
   }
 
   assert_not allow(User{"bob"}, "trip.create", Organization{"default"});
   assert allow(User{"alice"}, "trip.create", Organization{"default"});
+  assert_not allow(User{"bob"}, "trip.list", Organization{"default"});
+  assert allow(User{"alice"}, "trip.list", Organization{"default"});
 }
 
 test fixture default {

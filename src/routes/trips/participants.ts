@@ -35,12 +35,13 @@ const router = createRouter()
     withTripAuth(["Organizer"]),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId } = c.req.valid("param");
       const { user_id, role_id } = c.req.valid("json");
 
       try {
         const participantService: ParticipantService =
-          new DefaultParticipantService(db);
+          new DefaultParticipantService(db, oso);
         const participant = await participantService.addParticipant(
           tripId,
           user_id,
@@ -69,11 +70,12 @@ const router = createRouter()
     withTripAuth(["Organizer", "Participant", "Viewer"]),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId } = c.req.valid("param");
 
       try {
         const participantService: ParticipantService =
-          new DefaultParticipantService(db);
+          new DefaultParticipantService(db, oso);
         const participants = await participantService.getParticipants(tripId);
 
         return c.json({ participants }, 200);
@@ -90,6 +92,7 @@ const router = createRouter()
     withTripAuth(["Organizer"]),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId, userId } = c.req.valid("param");
       const { role_id } = c.req.valid("json");
 
@@ -102,7 +105,7 @@ const router = createRouter()
         }
 
         const participantService: ParticipantService =
-          new DefaultParticipantService(db);
+          new DefaultParticipantService(db, oso);
         const updatedParticipant =
           await participantService.updateParticipantRole(
             tripId,
@@ -132,11 +135,12 @@ const router = createRouter()
     withTripAuth(["Organizer"]),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId, userId } = c.req.valid("param");
 
       try {
         const participantService: ParticipantService =
-          new DefaultParticipantService(db);
+          new DefaultParticipantService(db, oso);
         await participantService.removeParticipant(tripId, userId);
 
         // Return 204 No Content status code

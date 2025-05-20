@@ -2,6 +2,8 @@ import { trips, tripRoles, roles } from "@/db/trips-schema.sql";
 import { eq } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { DrizzleClient } from "@/lib/types";
+import type { Oso } from "oso-cloud";
+import type { PolarTypes } from "@/lib/polarTypes";
 
 // Define interfaces for the return types
 export interface Trip {
@@ -71,7 +73,7 @@ type UserTripQueryResult = TripWithRoleIdQueryResult & {
 };
 
 export class DefaultTripService implements TripService {
-  constructor(private db: DrizzleClient) {}
+  constructor(private db: DrizzleClient, private oso: Oso<PolarTypes>) {}
 
   /**
    * Maps a database query result to a Trip interface
@@ -160,6 +162,21 @@ export class DefaultTripService implements TripService {
         roleId: organizerRoleId
       });
 
+      await this.oso.batch((tx) => {
+        tx.insert([
+          "has_relation",
+          { type: "Trip", id: dbTrip.id },
+          "organization",
+          { type: "Organization", id: "default" }
+        ]);
+        tx.insert([
+          "has_role",
+          { type: "User", id: userId },
+          { type: "String", id: organizerRoleId },
+          { type: "Trip", id: dbTrip.id }
+        ]);
+      });
+
       // Map the database result to our Trip interface
       return this.mapToTrip(dbTrip);
     } catch (error) {
@@ -225,6 +242,17 @@ export class DefaultTripService implements TripService {
           message: `Trip with ID ${tripId} not found`
         });
       }
+
+      // TODO: Remove trip from Oso permissions as well
+      await this.oso.batch((tx) => {
+        tx.delete([
+          "has_relation",
+          { type: "Trip", id: tripId },
+          organization,
+          { type: "Organation", id: "default" }
+        ]);
+        tx.delete(["has_role", null, null, { type: "Trip", id: tripId }]);
+      });
 
       // Map the database result to our Trip interface
       return this.mapToTrip(deletedTrips[0]);

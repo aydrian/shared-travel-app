@@ -1,5 +1,4 @@
 import { createRouter } from "@/lib/create-app";
-import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
@@ -7,6 +6,7 @@ import {
   DefaultExpenseService,
   type ExpenseService
 } from "@/services/expense-service";
+import { withOsoAuth } from "@/middlewares/with-oso-auth";
 
 const createExpenseSchema = z.object({
   description: z.string().min(1),
@@ -34,13 +34,17 @@ const router = createRouter()
   .get(
     "/",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer", "Participant", "Viewer"]),
+    withOsoAuth("Expense", "view"),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId } = c.req.valid("param");
 
       try {
-        const expenseService: ExpenseService = new DefaultExpenseService(db);
+        const expenseService: ExpenseService = new DefaultExpenseService(
+          db,
+          oso
+        );
         const tripExpenses = await expenseService.getExpenses(tripId);
 
         return c.json({ expenses: tripExpenses }, 200);
@@ -53,16 +57,20 @@ const router = createRouter()
   .post(
     "/",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer", "Participant"]),
+    withOsoAuth("Expense", "manage"),
     zValidator("json", createExpenseSchema),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const user = c.get("user");
       const { tripId } = c.req.valid("param");
       const expenseData = c.req.valid("json");
 
       try {
-        const expenseService: ExpenseService = new DefaultExpenseService(db);
+        const expenseService: ExpenseService = new DefaultExpenseService(
+          db,
+          oso
+        );
 
         const newExpense = await expenseService.createExpense(
           tripId,
@@ -81,15 +89,19 @@ const router = createRouter()
   .patch(
     "/:expenseId",
     zValidator("param", expenseParamSchema),
-    withTripAuth(["Organizer", "Participant"]),
+    withOsoAuth("Expense", "manage"),
     zValidator("json", updateExpenseSchema),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId, expenseId } = c.req.valid("param");
       const updateData = c.req.valid("json");
 
       try {
-        const expenseService: ExpenseService = new DefaultExpenseService(db);
+        const expenseService: ExpenseService = new DefaultExpenseService(
+          db,
+          oso
+        );
         const updatedExpense = await expenseService.updateExpense(
           tripId,
           expenseId,
@@ -109,13 +121,17 @@ const router = createRouter()
   .delete(
     "/:expenseId",
     zValidator("param", expenseParamSchema),
-    withTripAuth(["Organizer", "Participant"]),
+    withOsoAuth("Expense", "manage"),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId, expenseId } = c.req.valid("param");
 
       try {
-        const expenseService: ExpenseService = new DefaultExpenseService(db);
+        const expenseService: ExpenseService = new DefaultExpenseService(
+          db,
+          oso
+        );
         await expenseService.deleteExpense(tripId, expenseId);
 
         return c.body(null, 204);

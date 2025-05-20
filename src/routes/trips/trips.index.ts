@@ -4,9 +4,8 @@ import expenses from "./expenses";
 import participants from "./participants";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { withAuth } from "@/middlewares/with-auth";
-import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { DefaultTripService, type TripService } from "@/services/trip-service";
+import { withOsoAuth } from "@/middlewares/with-oso-auth";
 
 const tripParamSchema = z.object({
   tripId: z.string()
@@ -27,13 +26,14 @@ const updateTripSchema = z.object({
 });
 
 const router = createRouter()
-  .get("/", withAuth, async (c) => {
+  .get("/", withOsoAuth("Organization", "trip.list"), async (c) => {
     const user = c.get("user");
     const db = c.get("db");
+    const oso = c.get("oso");
 
     try {
       // Create trip service
-      const tripService: TripService = new DefaultTripService(db);
+      const tripService: TripService = new DefaultTripService(db, oso);
 
       // biome-ignore lint/style/noNonNullAssertion: withAuth middleware ensures user is authenticated
       const userTrips = await tripService.getUserTrips(user!.id);
@@ -44,51 +44,58 @@ const router = createRouter()
       throw new HTTPException(500, { message: "Internal Server Error" });
     }
   })
-  .post("/", withAuth, zValidator("json", createTripSchema), async (c) => {
-    const user = c.get("user");
-    const db = c.get("db");
+  .post(
+    "/",
+    withOsoAuth("Organization", "trip.create"),
+    zValidator("json", createTripSchema),
+    async (c) => {
+      const user = c.get("user");
+      const db = c.get("db");
+      const oso = c.get("oso");
 
-    try {
-      const tripData = c.req.valid("json");
+      try {
+        const tripData = c.req.valid("json");
 
-      // Get the "Organizer" role
-      const roles = c.get("roles");
-      const organizerRole = roles.find((role) => role.name === "Organizer");
+        // Get the "Organizer" role
+        const roles = c.get("roles");
+        const organizerRole = roles.find((role) => role.name === "Organizer");
 
-      if (!organizerRole) {
-        throw new HTTPException(500, { message: "Organizer role not found" });
+        if (!organizerRole) {
+          throw new HTTPException(500, { message: "Organizer role not found" });
+        }
+
+        // Create trip service
+        const tripService: TripService = new DefaultTripService(db, oso);
+
+        const newTrip = await tripService.createTrip(
+          tripData,
+          // biome-ignore lint/style/noNonNullAssertion: withAuth middleware ensures user is authenticated
+          user!.id,
+          organizerRole.id
+        );
+
+        return c.json(newTrip, 201);
+      } catch (error) {
+        console.error("Error creating trip:", error);
+        throw new HTTPException(500, { message: "Internal Server Error" });
       }
-
-      // Create trip service
-      const tripService: TripService = new DefaultTripService(db);
-
-      const newTrip = await tripService.createTrip(
-        tripData,
-        // biome-ignore lint/style/noNonNullAssertion: withAuth middleware ensures user is authenticated
-        user!.id,
-        organizerRole.id
-      );
-
-      return c.json(newTrip, 201);
-    } catch (error) {
-      console.error("Error creating trip:", error);
-      throw new HTTPException(500, { message: "Internal Server Error" });
     }
-  })
+  )
   .patch(
     "/:tripId",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer"]),
+    withOsoAuth("Trip", "manage"),
     zValidator("json", updateTripSchema),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId } = c.req.valid("param");
 
       try {
         const updateData = c.req.valid("json");
 
         // Create trip service
-        const tripService: TripService = new DefaultTripService(db);
+        const tripService: TripService = new DefaultTripService(db, oso);
 
         // Update the trip using the service
         const updatedTrip = await tripService.updateTrip(tripId, updateData);
@@ -106,14 +113,15 @@ const router = createRouter()
   .delete(
     "/:tripId",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer"]),
+    withOsoAuth("Trip", "manage"),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId } = c.req.valid("param");
 
       try {
         // Create trip service
-        const tripService: TripService = new DefaultTripService(db);
+        const tripService: TripService = new DefaultTripService(db, oso);
 
         // Delete the trip using the service
         await tripService.deleteTrip(tripId);
@@ -128,14 +136,15 @@ const router = createRouter()
   .get(
     "/:tripId",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer", "Participant", "Viewer"]),
+    withOsoAuth("Trip", "view"),
     async (c) => {
       const db = c.get("db");
+      const oso = c.get("oso");
       const { tripId } = c.req.valid("param");
 
       try {
         // Create trip service
-        const tripService: TripService = new DefaultTripService(db);
+        const tripService: TripService = new DefaultTripService(db, oso);
 
         // Get roles from context
         const roles = c.get("roles");

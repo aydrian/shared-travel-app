@@ -10,6 +10,7 @@ import {
   type ParticipantService
 } from "@/services/participant-service";
 import { DefaultExpenseService } from "@/services/expense-service";
+import { getAuthz } from "@/lib/authz";
 
 // Use hardcoded role IDs from the migration
 export const testRoles = {
@@ -39,7 +40,9 @@ const testUserData = {
 // Create a mock context to pass to getAuth
 const mockContext = {
   env: {
-    DB: env.DB
+    DB: env.DB,
+    OSO_AUTH: env.OSO_AUTH,
+    OSO_URL: env.OSO_URL
   }
 } as Context<AppBindings>;
 
@@ -124,11 +127,13 @@ export async function createTestTrip(
   viewer: { id: string } & Record<string, unknown>
 ) {
   const db = getDB(mockContext);
+  const oso = getAuthz(mockContext);
 
   // Create services
-  const tripService: TripService = new DefaultTripService(db);
+  const tripService: TripService = new DefaultTripService(db, oso);
   const participantService: ParticipantService = new DefaultParticipantService(
-    db
+    db,
+    oso
   );
 
   // Create a new trip using TripService
@@ -160,7 +165,8 @@ export async function createTestTrip(
 
 export async function createTestExpense(tripId: string, participantId: string) {
   const db = getDB(mockContext);
-  const expenseService = new DefaultExpenseService(db);
+  const oso = getAuthz(mockContext);
+  const expenseService = new DefaultExpenseService(db, oso);
   const newExpense = await expenseService.createExpense(tripId, participantId, {
     description: "Test Expense",
     amount: "100.00"
