@@ -56,7 +56,18 @@ const { client: authClient, signInWithUser } = await getTestInstance(
 
 export { authClient, signInWithUser, mockContext };
 
+async function initializeOsoClient(c: Context<AppBindings>) {
+  const response = await fetch(`${c.env.OSO_URL}/test_environment?copy=true`, {
+    method: "POST"
+  });
+  const data = (await response.json()) as { token: string };
+  console.log("Created Oso test environment:", data.token);
+
+  c.env.OSO_AUTH = data.token;
+}
+
 export async function setupTestData() {
+  await initializeOsoClient(mockContext);
   const testUsers = {
     organizer: await createTestUser(testUserData.organizer),
     participant: await createTestUser(testUserData.participant),

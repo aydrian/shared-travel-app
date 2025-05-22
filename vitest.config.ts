@@ -3,6 +3,7 @@ import {
   readD1Migrations
 } from "@cloudflare/vitest-pool-workers/config";
 import path from "node:path";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineWorkersConfig(async () => {
   // Read all migrations in the `migrations` directory
@@ -19,7 +20,8 @@ export default defineWorkersConfig(async () => {
               "@noble/hashes",
               "@noble/hashes/**",
               "@paralleldrive/cuid2",
-              "@paralleldrive/cuid2/**"
+              "@paralleldrive/cuid2/**",
+              "oso-cloud"
             ]
           }
         }
@@ -37,7 +39,7 @@ export default defineWorkersConfig(async () => {
             // Add a test-only binding for migrations, so we can apply them in a
             // setup file
             compatibilityFlags: ["nodejs_compat"],
-            compatibilityDate: "2024-04-01",
+            compatibilityDate: "2025-04-24",
             d1Databases: ["DB"],
             bindings: { TEST_MIGRATIONS: migrations }
           }
@@ -48,6 +50,10 @@ export default defineWorkersConfig(async () => {
       alias: {
         "@": path.resolve(__dirname, "./src")
       }
+    },
+    plugins: [nodePolyfills({ include: ["https", "http", "url"] })],
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV)
     }
   };
 });

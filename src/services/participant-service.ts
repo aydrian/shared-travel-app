@@ -3,8 +3,7 @@ import { tripRoles, roles } from "@/db/trips-schema.sql";
 import { eq, and } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { DrizzleClient } from "@/lib/types";
-import type { Oso } from "oso-cloud";
-import type { PolarTypes } from "@/lib/polarTypes";
+import type { getAuthz } from "@/lib/authz";
 
 export interface Participant {
   user_id: string;
@@ -29,7 +28,10 @@ export interface ParticipantService {
 }
 
 export class DefaultParticipantService implements ParticipantService {
-  constructor(private db: DrizzleClient, private oso: Oso<PolarTypes>) {}
+  constructor(
+    private db: DrizzleClient,
+    private oso: ReturnType<typeof getAuthz>
+  ) {}
 
   async getParticipants(tripId: string): Promise<Participant[]> {
     try {
@@ -109,9 +111,9 @@ export class DefaultParticipantService implements ParticipantService {
 
       await this.oso.insert([
         "has_role",
-        { type: "Trip", id: tripId },
-        { type: "String", id: roleId },
-        { type: "User", id: userId }
+        { type: "User", id: userId },
+        { type: "String", id: participant.role },
+        { type: "Trip", id: tripId }
       ]);
 
       return participant;
@@ -157,15 +159,15 @@ export class DefaultParticipantService implements ParticipantService {
 
       await this.oso.delete([
         "has_role",
-        { type: "Trip", id: tripId },
+        { type: "User", id: userId },
         null,
-        { type: "User", id: userId }
+        { type: "Trip", id: tripId }
       ]);
       await this.oso.insert([
         "has_role",
-        { type: "Trip", id: tripId },
-        { type: "String", id: roleId },
-        { type: "User", id: userId }
+        { type: "User", id: userId },
+        { type: "String", id: participant.role },
+        { type: "Trip", id: tripId }
       ]);
 
       return participant;

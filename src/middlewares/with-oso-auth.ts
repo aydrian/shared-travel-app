@@ -2,7 +2,17 @@ import type { MiddlewareHandler } from "hono";
 import type { AppBindings } from "@/lib/types";
 import { HTTPException } from "hono/http-exception";
 import { getAuthz } from "@/lib/authz";
-import type { PolarResources, PolarTypes } from "@/lib/polarTypes";
+import { PolarResources, type PolarTypes } from "@/lib/polarTypes.d";
+
+type ResourceType = keyof typeof PolarResources;
+
+export function isValidResourceAction<T extends ResourceType>(
+  resource: T,
+  action: string
+): action is ResourcePermissions[T] {
+  const validActions = PolarResources[resource].permissions;
+  return (validActions as readonly string[]).includes(action);
+}
 
 type ResourcePermissions = {
   [K in keyof typeof PolarResources]: (typeof PolarResources)[K]["permissions"][number];
@@ -35,6 +45,7 @@ export const withOsoAuth = <T extends keyof typeof PolarResources>(
         break;
       // Add cases for other resources as needed
       default:
+        console.log("unsupported resource type");
         throw new HTTPException(400, {
           message: `Unsupported resource type: ${resource}`
         });
@@ -42,6 +53,13 @@ export const withOsoAuth = <T extends keyof typeof PolarResources>(
 
     if (!resourceId) {
       throw new HTTPException(400, { message: `${resource} ID is required` });
+    }
+
+    if (!isValidResourceAction(resource, action)) {
+      console.log("invalid action for resource");
+      throw new HTTPException(400, {
+        message: `Invalid action "${action}" for resource "${resource}"`
+      });
     }
 
     // const oUser = { type: "User", id: user.id } as const;
@@ -54,6 +72,10 @@ export const withOsoAuth = <T extends keyof typeof PolarResources>(
     );
 
     if (!authorized) {
+      console.log("Not Authorized");
+      console.log(`User: ${user.name} (${user.id})`);
+      console.log(`Resource: ${resource} (${resourceId})`);
+      console.log(`Action: ${action}`);
       throw new HTTPException(403, {
         message:
           "Forbidden: User does not have the required permission for this action"

@@ -34,7 +34,7 @@ const router = createRouter()
   .get(
     "/",
     zValidator("param", tripParamSchema),
-    withOsoAuth("Expense", "view"),
+    withOsoAuth("Trip", "expense.list"),
     async (c) => {
       const db = c.get("db");
       const oso = c.get("oso");
@@ -57,7 +57,7 @@ const router = createRouter()
   .post(
     "/",
     zValidator("param", tripParamSchema),
-    withOsoAuth("Expense", "manage"),
+    withOsoAuth("Trip", "expense.create"),
     zValidator("json", createExpenseSchema),
     async (c) => {
       const db = c.get("db");

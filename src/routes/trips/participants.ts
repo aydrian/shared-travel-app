@@ -1,6 +1,5 @@
 import { createRouter } from "@/lib/create-app";
 import { HTTPException } from "hono/http-exception";
-import { withTripAuth } from "@/middlewares/with-trip-auth";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { getGlobalRoles, type Role } from "@/lib/global-roles";
@@ -8,6 +7,7 @@ import {
   DefaultParticipantService,
   type ParticipantService
 } from "@/services/participant-service";
+import { withOsoAuth } from "@/middlewares/with-oso-auth";
 
 const tripParamSchema = z.object({
   tripId: z.string()
@@ -32,7 +32,7 @@ const router = createRouter()
     "/",
     zValidator("param", tripParamSchema),
     zValidator("json", addParticipantSchema),
-    withTripAuth(["Organizer"]),
+    withOsoAuth("Trip", "participants.manage"),
     async (c) => {
       const db = c.get("db");
       const oso = c.get("oso");
@@ -67,7 +67,7 @@ const router = createRouter()
   .get(
     "/",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer", "Participant", "Viewer"]),
+    withOsoAuth("Trip", "participants.list"),
     async (c) => {
       const db = c.get("db");
       const oso = c.get("oso");
@@ -89,7 +89,7 @@ const router = createRouter()
     "/:userId",
     zValidator("param", participantParamSchema),
     zValidator("json", updateRoleSchema),
-    withTripAuth(["Organizer"]),
+    withOsoAuth("Trip", "participants.manage"),
     async (c) => {
       const db = c.get("db");
       const oso = c.get("oso");
@@ -132,7 +132,7 @@ const router = createRouter()
   .delete(
     "/:userId",
     zValidator("param", participantParamSchema),
-    withTripAuth(["Organizer"]),
+    withOsoAuth("Trip", "participants.manage"),
     async (c) => {
       const db = c.get("db");
       const oso = c.get("oso");

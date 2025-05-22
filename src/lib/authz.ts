@@ -1,10 +1,10 @@
-import { Oso } from "oso-cloud";
 import type { Context } from "hono";
+import { OsoClient } from "./oso-client";
 import type { AppBindings } from "@/lib/types";
 import type { PolarTypes } from "./polarTypes";
 
 export const getAuthz = (c: Context<AppBindings>) => {
-  const oso = new Oso<PolarTypes>(c.env.OSO_URL, c.env.OSO_AUTH);
+  const oso = new OsoClient<PolarTypes>(c.env.OSO_URL, c.env.OSO_AUTH);
   return oso;
 };
 
