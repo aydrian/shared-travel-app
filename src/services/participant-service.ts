@@ -3,7 +3,9 @@ import { tripRoles, roles } from "@/db/trips-schema.sql";
 import { eq, and } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { DrizzleClient } from "@/lib/types";
-import type { getAuthz } from "@/lib/authz";
+import type { OsoClientType } from "@/lib/authz";
+
+type TripRole = "organizer" | "participant" | "viewer";
 
 export interface Participant {
   user_id: string;
@@ -28,10 +30,7 @@ export interface ParticipantService {
 }
 
 export class DefaultParticipantService implements ParticipantService {
-  constructor(
-    private db: DrizzleClient,
-    private oso: ReturnType<typeof getAuthz>
-  ) {}
+  constructor(private db: DrizzleClient, private oso: OsoClientType) {}
 
   async getParticipants(tripId: string): Promise<Participant[]> {
     try {
@@ -109,12 +108,17 @@ export class DefaultParticipantService implements ParticipantService {
         .where(and(eq(tripRoles.tripId, tripId), eq(tripRoles.userId, userId)))
         .limit(1);
 
-      await this.oso.insert([
-        "has_role",
-        { type: "User", id: userId },
-        { type: "String", id: participant.role },
-        { type: "Trip", id: tripId }
-      ]);
+      if (this.isTripRole(participant.role)) {
+        await this.oso.insert([
+          "has_role",
+          { type: "User", id: userId },
+          { type: "String", id: participant.role },
+          { type: "Trip", id: tripId }
+        ]);
+      } else {
+        console.error(`Invalid role: ${participant.role}`);
+        throw new HTTPException(400, { message: "Invalid role" });
+      }
 
       return participant;
     } catch (error) {
@@ -163,12 +167,17 @@ export class DefaultParticipantService implements ParticipantService {
         null,
         { type: "Trip", id: tripId }
       ]);
-      await this.oso.insert([
-        "has_role",
-        { type: "User", id: userId },
-        { type: "String", id: participant.role },
-        { type: "Trip", id: tripId }
-      ]);
+      if (this.isTripRole(participant.role)) {
+        await this.oso.insert([
+          "has_role",
+          { type: "User", id: userId },
+          { type: "String", id: participant.role },
+          { type: "Trip", id: tripId }
+        ]);
+      } else {
+        console.error(`Invalid role: ${participant.role}`);
+        throw new HTTPException(400, { message: "Invalid role" });
+      }
 
       return participant;
     } catch (error) {
@@ -194,9 +203,9 @@ export class DefaultParticipantService implements ParticipantService {
 
       await this.oso.delete([
         "has_role",
-        { type: "Trip", id: tripId },
+        { type: "User", id: userId },
         null,
-        { type: "User", id: userId }
+        { type: "Trip", id: tripId }
       ]);
     } catch (error) {
       console.error("Error removing participant:", error);
@@ -205,5 +214,9 @@ export class DefaultParticipantService implements ParticipantService {
       }
       throw new HTTPException(500, { message: "Internal Server Error" });
     }
+  }
+
+  private isTripRole(role: string): role is TripRole {
+    return ["organizer", "participant", "viewer"].includes(role);
   }
 }

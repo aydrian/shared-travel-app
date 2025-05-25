@@ -65,8 +65,6 @@ test fixture default {
 }
 
 test fixture testTrip {
-  has_relation(Trip{"test-trip"}, "organization", Organization{"default"});
-
   has_role(User{"alice"}, "organizer", Trip{"test-trip"});
   has_role(User{"bob"}, "participant", Trip{"test-trip"});
   has_role(User{"charlie"}, "viewer", Trip{"test-trip"});

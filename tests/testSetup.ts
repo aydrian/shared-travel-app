@@ -61,9 +61,9 @@ async function initializeOsoClient(c: Context<AppBindings>) {
     method: "POST"
   });
   const data = (await response.json()) as { token: string };
-  console.log("Created Oso test environment:", data.token);
 
   c.env.OSO_AUTH = data.token;
+  env.OSO_AUTH = data.token;
 }
 
 export async function setupTestData() {
@@ -100,20 +100,7 @@ export async function createTestUser({
   email: string;
   password: string;
 }): Promise<TestUser> {
-  try {
-    // Attempt to sign in silently
-    const signInRes = await authClient.signIn.email({ email, password });
-
-    // If sign-in is successful, the user already exists
-    if (signInRes.data?.user) {
-      const { id, name, email } = signInRes.data.user;
-      return { id, name, email, password };
-    }
-  } catch (error) {
-    // Ignore the error, as it likely means the user doesn't exist
-  }
-
-  // If sign-in fails or throws an error, create a new user
+  // Create a new user
   const signUpRes = await authClient.signUp.email({
     name,
     email,

@@ -20,3 +20,5 @@ export const addUserFact = async (
 
   await oso.insert(["has_role", user, member, org]);
 };
+
+export type OsoClientType = ReturnType<typeof getAuthz>;

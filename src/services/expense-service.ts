@@ -2,7 +2,7 @@ import { expenses } from "@/db/trips-schema.sql";
 import { eq, and } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { DrizzleClient } from "@/lib/types";
-import type { getAuthz } from "@/lib/authz";
+import type { OsoClientType } from "@/lib/authz";
 
 export interface Expense {
   expense_id: string;
@@ -38,10 +38,7 @@ export interface ExpenseService {
 }
 
 export class DefaultExpenseService implements ExpenseService {
-  constructor(
-    private db: DrizzleClient,
-    private oso: ReturnType<typeof getAuthz>
-  ) {}
+  constructor(private db: DrizzleClient, private oso: OsoClientType) {}
 
   async getExpenses(tripId: string): Promise<Expense[]> {
     try {

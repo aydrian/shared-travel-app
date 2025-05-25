@@ -58,7 +58,7 @@ const router = createRouter()
 
         // Get the "Organizer" role
         const roles = c.get("roles");
-        const organizerRole = roles.find((role) => role.name === "Organizer");
+        const organizerRole = roles.find((role) => role.name === "organizer");
 
         if (!organizerRole) {
           throw new HTTPException(500, { message: "Organizer role not found" });

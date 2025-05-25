@@ -35,16 +35,16 @@
     "better-auth": "^1.2.8",
     "drizzle-orm": "^0.43.1",
     "hono": "^4.7.10",
-    "oso-cloud": "2.0.0",
-    "zod": "^3.25.20"
+    "oso-cloud": "^2.4.7",
+    "zod": "^3.25.28"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@cloudflare/vitest-pool-workers": "^0.8.31",
+    "@cloudflare/vitest-pool-workers": "^0.8.32",
     "drizzle-kit": "^0.31.1",
     "typescript": "^5.8.3",
     "vite-plugin-node-polyfills": "^0.23.0",
     "vitest": "^3.1.4",
-    "wrangler": "^4.16.0"
+    "wrangler": "^4.16.1"
   }
 }

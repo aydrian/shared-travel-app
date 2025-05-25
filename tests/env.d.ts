@@ -7,5 +7,6 @@ declare module "cloudflare:test" {
     BETTER_AUTH_URL: string;
     OSO_AUTH: string;
     OSO_URL: string;
+    NODE_ENV: string;
   }
 }

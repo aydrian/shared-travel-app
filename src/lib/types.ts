@@ -4,7 +4,7 @@ import type { Role } from "@/lib/global-roles";
 
 import type { DBSchema, getDB } from "@/db";
 import type { getAuth } from "@/lib/auth";
-import type { getAuthz } from "./authz";
+import type { OsoClientType } from "./authz";
 
 export interface AppBindings {
   Bindings: {
@@ -21,7 +21,7 @@ export interface AppBindings {
     db: DrizzleD1Database<DBSchema>;
     roles: Role[];
     userTripRole: Role | undefined;
-    oso: ReturnType<typeof getAuthz>;
+    oso: OsoClientType;
   };
 }
 

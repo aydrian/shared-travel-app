@@ -30,8 +30,8 @@ export default defineWorkersConfig(async () => {
       globals: true,
       poolOptions: {
         workers: {
-          singleWorker: true,
-          isolatedStorage: false,
+          singleWorker: false,
+          isolatedStorage: true,
           wrangler: {
             configPath: "./wrangler.jsonc"
           },
@@ -41,7 +41,7 @@ export default defineWorkersConfig(async () => {
             compatibilityFlags: ["nodejs_compat"],
             compatibilityDate: "2025-04-24",
             d1Databases: ["DB"],
-            bindings: { TEST_MIGRATIONS: migrations }
+            bindings: { TEST_MIGRATIONS: migrations, NODE_ENV: "test" }
           }
         }
       }
