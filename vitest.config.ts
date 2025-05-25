@@ -28,18 +28,15 @@ export default defineWorkersConfig(async () => {
       globals: true,
       poolOptions: {
         workers: {
-          singleWorker: true,
-          isolatedStorage: false,
+          singleWorker: false,
+          isolatedStorage: true,
           wrangler: {
             configPath: "./wrangler.jsonc"
           },
           miniflare: {
             // Add a test-only binding for migrations, so we can apply them in a
             // setup file
-            compatibilityFlags: ["nodejs_compat"],
-            compatibilityDate: "2024-04-01",
-            d1Databases: ["DB"],
-            bindings: { TEST_MIGRATIONS: migrations }
+            bindings: { TEST_MIGRATIONS: migrations, NODE_ENV: "test" }
           }
         }
       }

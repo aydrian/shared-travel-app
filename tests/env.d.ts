@@ -5,5 +5,6 @@ declare module "cloudflare:test" {
     TEST_MIGRATIONS: D1Migration[]; // Defined in `vitest.config.mts`
     BETTER_AUTH_SECRET: string;
     BETTER_AUTH_URL: string;
+    NODE_ENV: string;
   }
 }

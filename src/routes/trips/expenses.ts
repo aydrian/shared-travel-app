@@ -34,7 +34,7 @@ const router = createRouter()
   .get(
     "/",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer", "Participant", "Viewer"]),
+    withTripAuth(["organizer", "participant", "viewer"]),
     async (c) => {
       const db = c.get("db");
       const { tripId } = c.req.valid("param");
@@ -53,7 +53,7 @@ const router = createRouter()
   .post(
     "/",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer", "Participant"]),
+    withTripAuth(["organizer", "participant"]),
     zValidator("json", createExpenseSchema),
     async (c) => {
       const db = c.get("db");
@@ -81,7 +81,7 @@ const router = createRouter()
   .patch(
     "/:expenseId",
     zValidator("param", expenseParamSchema),
-    withTripAuth(["Organizer", "Participant"]),
+    withTripAuth(["organizer", "participant"]),
     zValidator("json", updateExpenseSchema),
     async (c) => {
       const db = c.get("db");
@@ -109,7 +109,7 @@ const router = createRouter()
   .delete(
     "/:expenseId",
     zValidator("param", expenseParamSchema),
-    withTripAuth(["Organizer", "Participant"]),
+    withTripAuth(["organizer", "participant"]),
     async (c) => {
       const db = c.get("db");
       const { tripId, expenseId } = c.req.valid("param");

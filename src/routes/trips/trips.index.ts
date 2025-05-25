@@ -53,7 +53,7 @@ const router = createRouter()
 
       // Get the "Organizer" role
       const roles = c.get("roles");
-      const organizerRole = roles.find((role) => role.name === "Organizer");
+      const organizerRole = roles.find((role) => role.name === "organizer");
 
       if (!organizerRole) {
         throw new HTTPException(500, { message: "Organizer role not found" });
@@ -78,7 +78,7 @@ const router = createRouter()
   .patch(
     "/:tripId",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer"]),
+    withTripAuth(["organizer"]),
     zValidator("json", updateTripSchema),
     async (c) => {
       const db = c.get("db");
@@ -106,7 +106,7 @@ const router = createRouter()
   .delete(
     "/:tripId",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer"]),
+    withTripAuth(["organizer"]),
     async (c) => {
       const db = c.get("db");
       const { tripId } = c.req.valid("param");
@@ -128,7 +128,7 @@ const router = createRouter()
   .get(
     "/:tripId",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer", "Participant", "Viewer"]),
+    withTripAuth(["organizer", "participant", "viewer"]),
     async (c) => {
       const db = c.get("db");
       const { tripId } = c.req.valid("param");

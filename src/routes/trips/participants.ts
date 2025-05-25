@@ -32,7 +32,7 @@ const router = createRouter()
     "/",
     zValidator("param", tripParamSchema),
     zValidator("json", addParticipantSchema),
-    withTripAuth(["Organizer"]),
+    withTripAuth(["organizer"]),
     async (c) => {
       const db = c.get("db");
       const { tripId } = c.req.valid("param");
@@ -66,7 +66,7 @@ const router = createRouter()
   .get(
     "/",
     zValidator("param", tripParamSchema),
-    withTripAuth(["Organizer", "Participant", "Viewer"]),
+    withTripAuth(["organizer", "participant", "viewer"]),
     async (c) => {
       const db = c.get("db");
       const { tripId } = c.req.valid("param");
@@ -87,7 +87,7 @@ const router = createRouter()
     "/:userId",
     zValidator("param", participantParamSchema),
     zValidator("json", updateRoleSchema),
-    withTripAuth(["Organizer"]),
+    withTripAuth(["organizer"]),
     async (c) => {
       const db = c.get("db");
       const { tripId, userId } = c.req.valid("param");
@@ -129,7 +129,7 @@ const router = createRouter()
   .delete(
     "/:userId",
     zValidator("param", participantParamSchema),
-    withTripAuth(["Organizer"]),
+    withTripAuth(["organizer"]),
     async (c) => {
       const db = c.get("db");
       const { tripId, userId } = c.req.valid("param");
