@@ -36,7 +36,7 @@
     "drizzle-orm": "^0.43.1",
     "hono": "^4.7.10",
     "oso-cloud": "^2.4.7",
-    "zod": "^3.25.28"
+    "zod": "^3.25.30"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
