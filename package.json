@@ -26,7 +26,9 @@
     "oso:validate": "oso-cloud validate main.polar",
     "oso:test": "oso-cloud test main.polar",
     "test": "vitest",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint": "biome lint .",
+    "format": "biome format . --write"
   },
   "dependencies": {
     "@better-auth-kit/tests": "^0.2.0",
@@ -40,10 +42,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.5",
-    "@cloudflare/vitest-pool-workers": "^0.8.46",
-    "drizzle-kit": "^0.31.2",
+    "@cloudflare/vitest-pool-workers": "^0.8.47",
+    "drizzle-kit": "^0.31.3",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4",
-    "wrangler": "^4.21.2"
+    "wrangler": "^4.22.0"
   }
 }
