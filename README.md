@@ -2,6 +2,41 @@
 
 RBAC and ReBAC authorization demo using Oso Cloud
 
+## 🔄 Implementation Progression
+
+This repository demonstrates the evolution of authorization systems from basic RBAC to advanced ReBAC using Oso Cloud. Each branch represents a different implementation approach:
+
+### 📂 Branch Overview
+
+| Branch | Implementation | Description |
+|--------|---------------|-------------|
+| **`v1-basic-rbac`** ⭐ | **Basic RBAC** | **Current branch** - Simple role-based access control without external authorization service |
+| `v2-oso-rbac` | Oso Cloud RBAC | Role-based access control using Oso Cloud with trip-level permissions |
+| `main` | Oso RBAC + ReBAC | Latest implementation with relationship-based access control for expense sharing |
+
+### 🔍 Explore the Evolution
+
+- **[Compare to v2](../../compare/v1-basic-rbac...v2-oso-rbac)**: See how Oso Cloud RBAC was implemented
+- **[Compare to v3](../../compare/v1-basic-rbac...main)**: See the full transformation to ReBAC
+- **[View latest version](../../tree/main)**: Jump to the most advanced implementation
+
+### 🎯 Key Features by Version
+
+**v1 (Basic RBAC)** ⭐ *Current Implementation*
+- Simple role-based permissions
+- Database-stored roles
+- Basic middleware authentication
+
+**v2 (Oso RBAC)**
+- Centralized authorization with Oso Cloud
+- Declarative policy definitions
+- Enhanced security and auditability
+
+**v3 (Oso RBAC + ReBAC)**
+- Relationship-based access control
+- Fine-grained expense sharing permissions
+- Advanced authorization patterns
+
 ## 🚀 Setup
 
 Follow these steps to set up the project:
