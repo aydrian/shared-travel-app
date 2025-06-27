@@ -9,6 +9,7 @@ export interface Expense {
   description: string;
   amount: string;
   created_by: string;
+  shared_with: string[];
   created_at: Date;
 }
 
@@ -35,6 +36,9 @@ export interface ExpenseService {
     updateData: UpdateExpenseData
   ): Promise<Expense>;
   deleteExpense(tripId: string, expenseId: string): Promise<void>;
+  shareExpense(expenseId: string, userIds: string[]): Promise<void>;
+  unshareExpense(expenseId: string, userIds: string[]): Promise<void>;
+  getExpenseShares(expenseId: string): Promise<string[]>;
 }
 
 export class DefaultExpenseService implements ExpenseService {
@@ -48,6 +52,7 @@ export class DefaultExpenseService implements ExpenseService {
           description: expenses.description,
           amount: expenses.amount,
           created_by: expenses.createdBy,
+          shared_with: expenses.sharedWith,
           created_at: expenses.createdAt
         })
         .from(expenses)
@@ -76,18 +81,31 @@ export class DefaultExpenseService implements ExpenseService {
         })
         .returning();
 
-      await this.oso.insert([
-        "has_relation",
-        { type: "Expense", id: newExpense.id },
-        "trip",
-        { type: "Trip", id: tripId }
-      ]);
+      // Set up Oso relations
+      await this.oso.batch(async (tx) => {
+        // Set trip relation
+        await tx.insert([
+          "has_relation",
+          { type: "Expense", id: newExpense.id },
+          "trip",
+          { type: "Trip", id: tripId }
+        ]);
+        
+        // Set owner relation
+        await tx.insert([
+          "has_role",
+          { type: "User", id: userId },
+          { type: "String", id: "owner" },
+          { type: "Expense", id: newExpense.id }
+        ]);
+      });
 
       return {
         expense_id: newExpense.id,
         description: newExpense.description,
         amount: newExpense.amount,
         created_by: newExpense.createdBy,
+        shared_with: newExpense.sharedWith,
         created_at: newExpense.createdAt
       };
     } catch (error) {
@@ -123,6 +141,7 @@ export class DefaultExpenseService implements ExpenseService {
           description: expenses.description,
           amount: expenses.amount,
           created_by: expenses.createdBy,
+          shared_with: expenses.sharedWith,
           created_at: expenses.createdAt
         });
 
@@ -152,17 +171,144 @@ export class DefaultExpenseService implements ExpenseService {
       // Delete the expense
       await this.db.delete(expenses).where(eq(expenses.id, expenseId));
 
-      await this.oso.delete([
-        "has_relation",
-        { type: "Expense", id: expenseId },
-        "trip",
-        { type: "Trip", id: tripId }
-      ]);
+      // Clean up all Oso facts for this expense
+      await this.oso.batch(async (tx) => {
+        // Delete trip relation
+        await tx.delete([
+          "has_relation",
+          { type: "Expense", id: expenseId },
+          "trip",
+          { type: "Trip", id: tripId }
+        ]);
+        
+        // Delete all ownership and sharing relations
+        await tx.delete([
+          "has_role",
+          null,
+          null,
+          { type: "Expense", id: expenseId }
+        ]);
+        
+        await tx.delete([
+          "has_relation",
+          { type: "Expense", id: expenseId },
+          "shared_with",
+          null
+        ]);
+      });
     } catch (error) {
       console.error("Error deleting expense:", error);
       if (error instanceof HTTPException) {
         throw error;
       }
+      throw new HTTPException(500, { message: "Internal Server Error" });
+    }
+  }
+
+  async shareExpense(expenseId: string, userIds: string[]): Promise<void> {
+    try {
+      // Get current shared users
+      const [expense] = await this.db
+        .select({ sharedWith: expenses.sharedWith })
+        .from(expenses)
+        .where(eq(expenses.id, expenseId))
+        .limit(1);
+
+      if (!expense) {
+        throw new HTTPException(404, { message: "Expense not found" });
+      }
+
+      // Merge new users with existing shared users
+      const currentShared = expense.sharedWith || [];
+      const updatedShared = [...new Set([...currentShared, ...userIds])];
+
+      // Update database
+      await this.db
+        .update(expenses)
+        .set({ sharedWith: updatedShared })
+        .where(eq(expenses.id, expenseId));
+
+      // Add Oso relations for new users only
+      const newUsers = userIds.filter(userId => !currentShared.includes(userId));
+      if (newUsers.length > 0) {
+        await this.oso.batch(async (tx) => {
+          for (const userId of newUsers) {
+            await tx.insert([
+              "has_relation",
+              { type: "Expense", id: expenseId },
+              "shared_with",
+              { type: "User", id: userId }
+            ]);
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error sharing expense:", error);
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+      throw new HTTPException(500, { message: "Internal Server Error" });
+    }
+  }
+
+  async unshareExpense(expenseId: string, userIds: string[]): Promise<void> {
+    try {
+      // Get current shared users
+      const [expense] = await this.db
+        .select({ sharedWith: expenses.sharedWith })
+        .from(expenses)
+        .where(eq(expenses.id, expenseId))
+        .limit(1);
+
+      if (!expense) {
+        throw new HTTPException(404, { message: "Expense not found" });
+      }
+
+      // Remove users from shared list
+      const currentShared = expense.sharedWith || [];
+      const updatedShared = currentShared.filter(userId => !userIds.includes(userId));
+
+      // Update database
+      await this.db
+        .update(expenses)
+        .set({ sharedWith: updatedShared })
+        .where(eq(expenses.id, expenseId));
+
+      // Remove Oso relations
+      await this.oso.batch(async (tx) => {
+        for (const userId of userIds) {
+          await tx.delete([
+            "has_relation",
+            { type: "Expense", id: expenseId },
+            "shared_with",
+            { type: "User", id: userId }
+          ]);
+        }
+      });
+    } catch (error) {
+      console.error("Error unsharing expense:", error);
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+      throw new HTTPException(500, { message: "Internal Server Error" });
+    }
+  }
+
+  async getExpenseShares(expenseId: string): Promise<string[]> {
+    try {
+      const [expense] = await this.db
+        .select({ sharedWith: expenses.sharedWith })
+        .from(expenses)
+        .where(eq(expenses.id, expenseId))
+        .limit(1);
+
+      if (!expense) {
+        throw new HTTPException(404, { message: "Expense not found" });
+      }
+
+      return expense.sharedWith || [];
+    } catch (error) {
+      console.error("Error getting expense shares:", error);
       throw new HTTPException(500, { message: "Internal Server Error" });
     }
   }

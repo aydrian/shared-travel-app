@@ -30,6 +30,10 @@ const expenseParamSchema = z.object({
   expenseId: z.string()
 });
 
+const shareExpenseSchema = z.object({
+  userIds: z.array(z.string().min(1)).min(1)
+});
+
 const router = createRouter()
   .get(
     "/",
@@ -50,6 +54,37 @@ const router = createRouter()
         return c.json({ expenses: tripExpenses }, 200);
       } catch (error) {
         console.error("Error fetching expenses:", error);
+        throw new HTTPException(500, { message: "Internal Server Error" });
+      }
+    }
+  )
+  .get(
+    "/:expenseId",
+    zValidator("param", expenseParamSchema),
+    withOsoAuth("Expense", "view"),
+    async (c) => {
+      const db = c.get("db");
+      const oso = c.get("oso");
+      const { tripId, expenseId } = c.req.valid("param");
+
+      try {
+        const expenseService: ExpenseService = new DefaultExpenseService(
+          db,
+          oso
+        );
+        const tripExpenses = await expenseService.getExpenses(tripId);
+        const expense = tripExpenses.find(e => e.expense_id === expenseId);
+
+        if (!expense) {
+          throw new HTTPException(404, { message: "Expense not found" });
+        }
+
+        return c.json(expense, 200);
+      } catch (error) {
+        console.error("Error fetching expense:", error);
+        if (error instanceof HTTPException) {
+          throw error;
+        }
         throw new HTTPException(500, { message: "Internal Server Error" });
       }
     }
@@ -137,6 +172,88 @@ const router = createRouter()
         return c.body(null, 204);
       } catch (error) {
         console.error("Error deleting expense:", error);
+        if (error instanceof HTTPException) {
+          throw error;
+        }
+        throw new HTTPException(500, { message: "Internal Server Error" });
+      }
+    }
+  )
+  .post(
+    "/:expenseId/share",
+    zValidator("param", expenseParamSchema),
+    withOsoAuth("Expense", "share"),
+    zValidator("json", shareExpenseSchema),
+    async (c) => {
+      const db = c.get("db");
+      const oso = c.get("oso");
+      const { expenseId } = c.req.valid("param");
+      const { userIds } = c.req.valid("json");
+
+      try {
+        const expenseService: ExpenseService = new DefaultExpenseService(
+          db,
+          oso
+        );
+        await expenseService.shareExpense(expenseId, userIds);
+
+        return c.json({ message: "Expense shared successfully" }, 200);
+      } catch (error) {
+        console.error("Error sharing expense:", error);
+        if (error instanceof HTTPException) {
+          throw error;
+        }
+        throw new HTTPException(500, { message: "Internal Server Error" });
+      }
+    }
+  )
+  .delete(
+    "/:expenseId/share",
+    zValidator("param", expenseParamSchema),
+    withOsoAuth("Expense", "share"),
+    zValidator("json", shareExpenseSchema),
+    async (c) => {
+      const db = c.get("db");
+      const oso = c.get("oso");
+      const { expenseId } = c.req.valid("param");
+      const { userIds } = c.req.valid("json");
+
+      try {
+        const expenseService: ExpenseService = new DefaultExpenseService(
+          db,
+          oso
+        );
+        await expenseService.unshareExpense(expenseId, userIds);
+
+        return c.json({ message: "Expense unshared successfully" }, 200);
+      } catch (error) {
+        console.error("Error unsharing expense:", error);
+        if (error instanceof HTTPException) {
+          throw error;
+        }
+        throw new HTTPException(500, { message: "Internal Server Error" });
+      }
+    }
+  )
+  .get(
+    "/:expenseId/shares",
+    zValidator("param", expenseParamSchema),
+    withOsoAuth("Expense", "view"),
+    async (c) => {
+      const db = c.get("db");
+      const oso = c.get("oso");
+      const { expenseId } = c.req.valid("param");
+
+      try {
+        const expenseService: ExpenseService = new DefaultExpenseService(
+          db,
+          oso
+        );
+        const sharedWith = await expenseService.getExpenseShares(expenseId);
+
+        return c.json({ sharedWith }, 200);
+      } catch (error) {
+        console.error("Error getting expense shares:", error);
         if (error instanceof HTTPException) {
           throw error;
         }

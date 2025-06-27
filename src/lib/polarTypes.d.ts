@@ -3,14 +3,16 @@
 export const PolarResources = {
   "Expense": {
     roles: [
-      "editor",
+      "owner",
       "viewer",
     ],
     permissions: [
       "manage",
+      "share",
       "view",
     ],
     relations: {
+      "shared_with": "User",
       "trip": "Trip",
     },
   },
@@ -53,17 +55,14 @@ export type PolarTypes = {
     | [
         "has_relation",
         { type: "Expense"; id: string },
-        { type: "String"; id: "trip" },
-        { type: "Trip"; id: string },
+        { type: "String"; id: "shared_with" },
+        { type: "User"; id: string },
       ]
     | [
-        "has_role",
-        { type: "User"; id: string },
-        (
-          | { type: "String"; id: "editor" }
-          | { type: "String"; id: "viewer" }
-        ),
+        "has_relation",
         { type: "Expense"; id: string },
+        { type: "String"; id: "trip" },
+        { type: "Trip"; id: string },
       ]
     | [
         "has_role",
@@ -80,6 +79,15 @@ export type PolarTypes = {
           | { type: "String"; id: "viewer" }
         ),
         { type: "Trip"; id: string },
+      ]
+    | [
+        "has_role",
+        { type: "User"; id: string },
+        (
+          | { type: "String"; id: "owner" }
+          | { type: "String"; id: "viewer" }
+        ),
+        { type: "Expense"; id: string },
       ];
   query:
     | [
@@ -100,6 +108,7 @@ export type PolarTypes = {
         { type: "User"; id: string },
         (
           | { type: "String"; id: "manage" }
+          | { type: "String"; id: "share" }
           | { type: "String"; id: "view" }
         ),
         { type: "Expense"; id: string },
@@ -131,6 +140,7 @@ export type PolarTypes = {
         { type: "User"; id: string },
         (
           | { type: "String"; id: "manage" }
+          | { type: "String"; id: "share" }
           | { type: "String"; id: "view" }
         ),
         { type: "Expense"; id: string },
@@ -148,7 +158,7 @@ export type PolarTypes = {
         "has_role",
         { type: "User"; id: string },
         (
-          | { type: "String"; id: "editor" }
+          | { type: "String"; id: "owner" }
           | { type: "String"; id: "viewer" }
         ),
         { type: "Expense"; id: string },

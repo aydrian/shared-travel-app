@@ -15,6 +15,13 @@
       "when": 1747251290658,
       "tag": "0001_seed-roles",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1751032987600,
+      "tag": "0002_nervous_starjammers",
+      "breakpoints": true
     }
   ]
 }

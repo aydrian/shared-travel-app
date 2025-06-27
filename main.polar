@@ -29,22 +29,30 @@ resource Trip {
 }
 
 resource Expense {
-  roles = ["editor", "viewer"];
-  permissions = ["manage", "view"];
-
+  roles = ["owner", "viewer"];
+  permissions = ["manage", "view", "share"];
   relations = {
-    trip: Trip
+    trip: Trip,
+    shared_with: User
   };
 
-  "editor" if "participant" on "trip";
-  "viewer" if "viewer" on "trip";
+  # Owner permissions (expense creator)
+  "owner" if "owner";
+  "manage" if "owner";
+  "view" if "owner";
+  "share" if "owner";
 
+  # Shared permissions
+  "viewer" if "shared_with";
+  "view" if "shared_with";
 
+  # Trip organizers can manage any expense
+  "manage" if "organizer" on "trip";
+  "view" if "organizer" on "trip";
+  "share" if "organizer" on "trip";
+
+  # Inheritance
   "view" if "viewer";
-
-  "viewer" if "editor";
-
-  "manage" if "editor";
 }
 
 test "org members can create and list trips" {
@@ -93,23 +101,57 @@ test "testing roles for trips" {
   assert_not allow(User{"charlie"}, "participants.manage", Trip{"test-trip"});
 }
 
-test "testing roles for expenses" {
-    setup {
+test fixture expenseSharing {
+  has_role(User{"alice"}, "organizer", Trip{"test-trip"});
+  has_role(User{"bob"}, "participant", Trip{"test-trip"});
+  has_role(User{"charlie"}, "viewer", Trip{"test-trip"});
+  has_role(User{"dave"}, "viewer", Trip{"test-trip"});
+  has_relation(Expense{"shared-expense"}, "trip", Trip{"test-trip"});
+  has_role(User{"bob"}, "owner", Expense{"shared-expense"});
+  has_relation(Expense{"shared-expense"}, "shared_with", User{"charlie"});
+}
+
+test "expense ownership and sharing permissions" {
+  setup {
     fixture default;
-    fixture testTrip;
-    has_relation(Expense{"private-tour"}, "trip", Trip{"test-trip"});
+    fixture expenseSharing;
   }
 
-  # Alice can perform all actions
-  assert allow(User{"alice"}, action: String, Expense{"private-tour"}) iff
-  action in ["manage", "view"];
+  # Bob (owner) can do everything
+  assert allow(User{"bob"}, action: String, Expense{"shared-expense"}) iff
+    action in ["manage", "view", "share"];
 
-  # Bob can perform all actions
-  assert allow(User{"bob"}, action: String, Expense{"private-tour"}) iff
-  action in ["view", "manage"];
+  # Alice (organizer) can do everything
+  assert allow(User{"alice"}, action: String, Expense{"shared-expense"}) iff
+    action in ["manage", "view", "share"];
 
-  # Charlie can only perform "view"
-  assert allow(User{"charlie"}, action: String, Expense{"private-tour"}) iff
-  action in ["view"];
-  assert_not allow(User{"charlie"}, "manage", Expense{"private-tour"});
+  # Charlie (shared with) can only view
+  assert allow(User{"charlie"}, "view", Expense{"shared-expense"});
+  assert_not allow(User{"charlie"}, "manage", Expense{"shared-expense"});
+  assert_not allow(User{"charlie"}, "share", Expense{"shared-expense"});
+
+  # Dave (not shared with) cannot access
+  assert_not allow(User{"dave"}, "view", Expense{"shared-expense"});
+  assert_not allow(User{"dave"}, "manage", Expense{"shared-expense"});
+}
+
+test "expense without sharing - owner only access" {
+  setup {
+    fixture default;
+    fixture testTrip;
+    has_relation(Expense{"private-expense"}, "trip", Trip{"test-trip"});
+    has_role(User{"bob"}, "owner", Expense{"private-expense"});
+  }
+
+  # Bob (owner) can access
+  assert allow(User{"bob"}, "view", Expense{"private-expense"});
+  assert allow(User{"bob"}, "manage", Expense{"private-expense"});
+
+  # Alice (organizer) can access
+  assert allow(User{"alice"}, "view", Expense{"private-expense"});
+  assert allow(User{"alice"}, "manage", Expense{"private-expense"});
+
+  # Charlie (viewer) cannot access since not shared
+  assert_not allow(User{"charlie"}, "view", Expense{"private-expense"});
+  assert_not allow(User{"charlie"}, "manage", Expense{"private-expense"});
 }

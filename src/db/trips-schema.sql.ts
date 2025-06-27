@@ -72,6 +72,10 @@ export const expenses = sqliteTable("expenses", {
   createdBy: text("owner_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  sharedWith: text("shared_with", { mode: "json" })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`(json_array())`),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`)

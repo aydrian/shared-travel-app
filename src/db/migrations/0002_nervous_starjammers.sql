@@ -1,0 +1,1 @@
+ALTER TABLE `expenses` ADD `shared_with` text DEFAULT (json_array()) NOT NULL;
