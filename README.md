@@ -44,8 +44,8 @@ Follow these steps to set up the project:
 1. Clone the repository:
 
    ```shell
-   git clone https://github.com/aydrian/ai-driven-authz-demo.git
-   cd ai-driven-authz-demo
+   git clone https://github.com/aydrian/shared-travel-app.git
+   cd shared-travel-app
    ```
 
 2. Install dependencies:
@@ -128,21 +128,25 @@ For more details on using Better Auth, refer to the [Better Auth documentation](
 
 ## 🚦 Routes and Permissions
 
-| Route                                     | Method | Description                  | Required Permissions           |
-| ----------------------------------------- | ------ | ---------------------------- | ------------------------------ |
-| `/api/trips`                              | GET    | List all trips for the user  | Authenticated                  |
-| `/api/trips`                              | POST   | Create a new trip            | Authenticated                  |
-| `/api/trips/:tripId`                      | PATCH  | Update a trip                | Organizer                      |
-| `/api/trips/:tripId`                      | DELETE | Delete a trip                | Organizer                      |
-| `/api/trips/:tripId`                      | GET    | Get trip details             | Organizer, Participant, Viewer |
-| `/api/trips/:tripId/participants`         | POST   | Add or update a participant  | Organizer                      |
-| `/api/trips/:tripId/participants`         | GET    | List all participants        | Organizer, Participant, Viewer |
-| `/api/trips/:tripId/participants/:userId` | PATCH  | Update a participant's role  | Organizer                      |
-| `/api/trips/:tripId/participants/:userId` | DELETE | Remove a participant         | Organizer                      |
-| `/api/trips/:tripId/expenses`             | GET    | List all expenses for a trip | Organizer, Participant, Viewer |
-| `/api/trips/:tripId/expenses`             | POST   | Add a new expense            | Organizer, Participant         |
-| `/api/trips/:tripId/expenses/:expenseId`  | PATCH  | Update an expense            | Organizer, Participant         |
-| `/api/trips/:tripId/expenses/:expenseId`  | DELETE | Delete an expense            | Organizer, Participant         |
+| Route                                              | Method | Description                  | Required Permissions                    |
+| -------------------------------------------------- | ------ | ---------------------------- | --------------------------------------- |
+| `/api/trips`                                       | GET    | List all trips for the user  | Authenticated                           |
+| `/api/trips`                                       | POST   | Create a new trip            | Authenticated                           |
+| `/api/trips/:tripId`                               | PATCH  | Update a trip                | Trip Organizer                          |
+| `/api/trips/:tripId`                               | DELETE | Delete a trip                | Trip Organizer                          |
+| `/api/trips/:tripId`                               | GET    | Get trip details             | Trip Organizer, Participant, Viewer    |
+| `/api/trips/:tripId/participants`                  | POST   | Add or update a participant  | Trip Organizer                          |
+| `/api/trips/:tripId/participants`                  | GET    | List all participants        | Trip Organizer, Participant, Viewer    |
+| `/api/trips/:tripId/participants/:userId`          | PATCH  | Update a participant's role  | Trip Organizer                          |
+| `/api/trips/:tripId/participants/:userId`          | DELETE | Remove a participant         | Trip Organizer                          |
+| `/api/trips/:tripId/expenses`                      | GET    | List all expenses for a trip | Trip Organizer, Participant, Viewer    |
+| `/api/trips/:tripId/expenses`                      | POST   | Add a new expense            | Trip Organizer, Participant             |
+| `/api/trips/:tripId/expenses/:expenseId`           | GET    | View a specific expense      | Expense Owner, Shared-with User, Trip Organizer |
+| `/api/trips/:tripId/expenses/:expenseId`           | PATCH  | Update an expense            | Expense Owner, Trip Organizer           |
+| `/api/trips/:tripId/expenses/:expenseId`           | DELETE | Delete an expense            | Expense Owner, Trip Organizer           |
+| `/api/trips/:tripId/expenses/:expenseId/share`     | POST   | Share expense with user      | Expense Owner, Trip Organizer           |
+| `/api/trips/:tripId/expenses/:expenseId/share`     | DELETE | Unshare expense from user    | Expense Owner, Trip Organizer           |
+| `/api/trips/:tripId/expenses/:expenseId/shares`    | GET    | Get expense sharing details  | Expense Owner, Shared-with User, Trip Organizer |
 
 ## 🧪 Testing
 
