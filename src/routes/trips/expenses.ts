@@ -74,7 +74,7 @@ const router = createRouter()
 
         const newExpense = await expenseService.createExpense(
           tripId,
-          // biome-ignore lint/style/noNonNullAssertion: Determined not null in withTripAuth middleware
+          // biome-ignore lint/style/noNonNullAssertion: Determined not null in withAuth middleware
           user!.id,
           expenseData
         );
