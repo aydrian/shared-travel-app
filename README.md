@@ -44,8 +44,8 @@ Follow these steps to set up the project:
 1. Clone the repository:
 
    ```shell
-   git clone https://github.com/aydrian/ai-driven-authz-demo.git
-   cd ai-driven-authz-demo
+   git clone https://github.com/aydrian/shared-travel-app.git
+   cd shared-travel-app
    ```
 
 2. Install dependencies:
